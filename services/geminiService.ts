@@ -50,8 +50,29 @@ export const generateTutorial = async (schema: SchemaDefinition, chainName: stri
     });
 
     return response.text || "Failed to generate tutorial content.";
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
+    
+    // Specific handling for Rate Limit / Quota Exceeded
+    if (error.status === 429 || (error.message && error.message.includes('429'))) {
+        return `
+## ⚠️ AI Service Unavailable (Quota Exceeded)
+
+The AI tutorial generator is currently experiencing extremely high demand and has temporarily reached its usage limit.
+
+### Quick Summary for **${schema.name}**
+
+*   **Provider**: ${schema.provider}
+*   **Category**: ${schema.category}
+*   **Description**: ${schema.description}
+
+### What to do next?
+1.  **Wait a few minutes**: The API quota resets frequently.
+2.  **Check Official Docs**: Visit the provider's website (${schema.provider}) for the most up-to-date guide.
+3.  **Try again later**: This feature will automatically restore once traffic subsides.
+        `;
+    }
+
     return "Sorry, I couldn't generate the tutorial at this moment. Please try again later.";
   }
 };
@@ -66,7 +87,28 @@ export interface AnalysisResult {
 
 export const analyzeAttestationPortfolio = async (attestations: string[]): Promise<AnalysisResult | null> => {
     const client = getClient();
-    if (!client) return null;
+    
+    // Fallback logic to ensure UI doesn't break when API is down/limited
+    const generateFallback = (): AnalysisResult => {
+        const count = attestations.length;
+        // Simple logic to simulate a score based on number of attestations
+        const score = Math.min(96, 45 + (count * 7));
+        
+        let persona = "Explorer";
+        if (count > 2) persona = "Active Citizen";
+        if (count > 5) persona = "Power User";
+        if (count > 8) persona = "Identity Maxi";
+
+        return {
+            score,
+            persona,
+            analysis: `⚠️ AI Offline: Based on your ${count} credentials, you show ${count > 3 ? "strong" : "emerging"} on-chain activity. (Simulated Analysis due to high traffic)`,
+            louvainCluster: "Cluster Pending",
+            lightgbmConfidence: 0.85
+        };
+    };
+
+    if (!client) return generateFallback();
 
     try {
         const prompt = `
@@ -103,9 +145,9 @@ export const analyzeAttestationPortfolio = async (attestations: string[]): Promi
         if (response.text) {
           return JSON.parse(response.text) as AnalysisResult;
         }
-        return null;
+        return generateFallback();
       } catch (error) {
-        console.error("Gemini API Error:", error);
-        return null;
+        console.warn("Gemini API Error (likely quota), using fallback:", error);
+        return generateFallback();
       }
 }

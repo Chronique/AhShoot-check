@@ -137,7 +137,8 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
         let schemaName = "Custom Schema";
         let provider = "Unknown";
         
-        if (att.schema.schemaNames && att.schema.schemaNames.length > 0) {
+        // Use Optional Chaining (?.) to prevent crash if schema is missing
+        if (att.schema?.schemaNames && att.schema.schemaNames.length > 0) {
             schemaName = att.schema.schemaNames[0].name;
             if (schemaName.includes("Coinbase")) provider = "Coinbase";
             else if (schemaName.includes("Gitcoin")) provider = "Gitcoin";
@@ -152,16 +153,18 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
         try {
             if (att.decodedDataJson) {
                 const parsed = JSON.parse(att.decodedDataJson);
-                const interestingFields = parsed.filter((p: any) => 
+                
+                // Ensure parsed is an array before filtering
+                const interestingFields = Array.isArray(parsed) ? parsed.filter((p: any) => 
                     ['score', 'grade', 'isVerified', 'sybilScore', 'humanity', 'rank'].some((k: string) => p.name.toLowerCase().includes(k))
-                );
+                ) : [];
                 
                 if (interestingFields.length > 0) {
                     displayData = interestingFields.map((f: any) => {
                         const val = typeof f.value.value === 'object' ? JSON.stringify(f.value.value) : f.value.value;
                         return `${f.name}: ${val}`;
                     }).join(', ');
-                } else if (parsed.length > 0) {
+                } else if (Array.isArray(parsed) && parsed.length > 0) {
                      const val = typeof parsed[0].value.value === 'object' ? 'Object' : parsed[0].value.value;
                      displayData = `${parsed[0].name}: ${val}`;
                      if(parsed.length > 1) displayData += "...";
@@ -173,7 +176,8 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
 
         return {
             uid: att.id,
-            schemaUid: att.schema.id,
+            // Safe access for schema ID
+            schemaUid: att.schema?.id || 'unknown',
             recipient: att.recipient,
             attester: att.attester,
             time: att.time,

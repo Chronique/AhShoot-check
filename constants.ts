@@ -37,18 +37,18 @@ export const CHAINS: Chain[] = [
     group: 'Optimism Rollups'
   },
   { 
-    id: 1946, 
+    id: 1868, 
     name: 'Soneium', 
     color: 'slate-400', 
-    // graphqlUrl: Pending
+    graphqlUrl: 'https://soneium.easscan.org/graphql',
     vmType: 'EVM',
     group: 'Optimism Rollups'
   },
   { 
-    id: 763373, 
+    id: 57073, 
     name: 'Ink', 
     color: 'purple-600', 
-    // graphqlUrl: Pending
+    graphqlUrl: 'https://ink.easscan.org/graphql',
     vmType: 'EVM',
     group: 'Optimism Rollups'
   },

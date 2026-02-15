@@ -14,11 +14,14 @@ const App: React.FC = () => {
   const [view, setView] = useState<AppView>(AppView.EXPLORER);
   const [address, setAddress] = useState<string>('');
   const [resolvedAddress, setResolvedAddress] = useState<string>('');
-  const [selectedChain, setSelectedChain] = useState<Chain>(CHAINS[0]); // Default Ethereum
+  
+  // Selection is now based on Group Name, not individual chain
+  const [selectedGroup, setSelectedGroup] = useState<string>('Optimism Rollups');
+  
   const [attestations, setAttestations] = useState<Attestation[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [searchStatus, setSearchStatus] = useState<string>(''); // For loading states like "Resolving ENS..."
+  const [searchStatus, setSearchStatus] = useState<string>('');
   
   // Analysis State
   const [portfolioAnalysis, setPortfolioAnalysis] = useState<AnalysisResult | null>(null);
@@ -39,10 +42,8 @@ const App: React.FC = () => {
     ? POPULAR_SCHEMAS 
     : POPULAR_SCHEMAS.filter(s => s.category === selectedCategory);
 
-  // Group chains for the selector
-  const evmChains = CHAINS.filter(c => c.vmType === 'EVM');
-  const svmChains = CHAINS.filter(c => c.vmType === 'SVM');
-  const moveChains = CHAINS.filter(c => c.vmType === 'MoveVM');
+  // Get unique group names for the dropdown
+  const chainGroups = Array.from(new Set(CHAINS.map(c => c.group)));
 
   // Handlers
   const handleSearch = async (e?: React.FormEvent) => {
@@ -58,27 +59,37 @@ const App: React.FC = () => {
     try {
       let targetAddress = address;
 
-      // ENS Resolution Logic
-      if (address.includes('.') && selectedChain.vmType === 'EVM') {
+      // ENS Resolution (only relevant for EVM)
+      if (address.includes('.') && selectedGroup !== 'SVM' && selectedGroup !== 'MoveVM') {
         setSearchStatus('Resolving ENS...');
         const resolved = await resolveEnsName(address);
         if (resolved) {
           targetAddress = resolved;
           setResolvedAddress(resolved);
         } else {
-          // If ENS fails to resolve, we stop here or try anyway (usually fails)
           console.warn("Could not resolve ENS");
         }
       }
 
-      setSearchStatus('Fetching data...');
-      const results = await fetchAttestations(targetAddress, selectedChain);
-      setAttestations(results);
+      setSearchStatus(`Scanning ${selectedGroup}...`);
+      
+      // Identify all chains in the selected group
+      const targetChains = CHAINS.filter(c => c.group === selectedGroup);
+      
+      // Fetch from all chains in the group concurrently
+      const promises = targetChains.map(chain => fetchAttestations(targetAddress, chain));
+      const resultsArray = await Promise.all(promises);
+      
+      // Flatten results and sort by time
+      const allAttestations = resultsArray.flat().sort((a, b) => b.time - a.time);
+      
+      setAttestations(allAttestations);
       setHasSearched(true);
       
-      if (results.length > 0) {
+      // Only analyze if we have data
+      if (allAttestations.length > 0) {
         setIsAnalyzing(true);
-        const names = results.map(r => r.schemaName || 'Unknown');
+        const names = allAttestations.map(r => r.schemaName || 'Unknown');
         const analysis = await analyzeAttestationPortfolio(names.slice(0, 20));
         setPortfolioAnalysis(analysis);
         setIsAnalyzing(false);
@@ -98,7 +109,7 @@ const App: React.FC = () => {
     setIsTutorialOpen(true);
     setIsGeneratingTutorial(true);
 
-    const content = await generateTutorial(schema, selectedChain.name);
+    const content = await generateTutorial(schema, selectedGroup);
     setTutorialContent(content);
     setIsGeneratingTutorial(false);
   };
@@ -131,39 +142,24 @@ const App: React.FC = () => {
               Verify On-Chain Reputation
             </h1>
             <p className="text-slate-400 text-lg mb-8 max-w-2xl mx-auto">
-              Check identity schemas across EVM, Solana, and Move ecosystems. Supporting <strong>Coinbase</strong>, <strong>Gitcoin</strong>, <strong>World ID</strong>, <strong>Civic</strong>, and more.
+              Check identity schemas instantly across <strong>{selectedGroup}</strong> networks. Supporting Coinbase, Gitcoin, World ID, and more.
             </p>
 
             <div className="bg-slate-800/50 p-2 rounded-2xl border border-slate-700 shadow-xl backdrop-blur-sm max-w-2xl mx-auto">
               <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-2">
                 
-                {/* Chain Selector */}
+                {/* Chain Category Selector */}
                 <div className="relative">
                   <select
-                    className="w-full md:w-48 h-12 pl-4 pr-8 bg-slate-900 border border-slate-700 rounded-xl text-white appearance-none focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer hover:border-slate-600 transition-colors"
-                    value={selectedChain.id}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      // Handle number/string ID types
-                      const chain = CHAINS.find(c => c.id.toString() === val);
-                      if (chain) setSelectedChain(chain);
-                    }}
+                    className="w-full md:w-56 h-12 pl-4 pr-8 bg-slate-900 border border-slate-700 rounded-xl text-white appearance-none focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer hover:border-slate-600 transition-colors font-medium"
+                    value={selectedGroup}
+                    onChange={(e) => setSelectedGroup(e.target.value)}
                   >
-                    <optgroup label="EVM (Solidity)">
-                      {evmChains.map(c => (
-                        <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="SVM (Rust)">
-                      {svmChains.map(c => (
-                        <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                      ))}
-                    </optgroup>
-                    <optgroup label="MoveVM (Move)">
-                      {moveChains.map(c => (
-                        <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                      ))}
-                    </optgroup>
+                    {chainGroups.map(group => (
+                        <option key={group} value={group}>
+                            {group}
+                        </option>
+                    ))}
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                     ▼
@@ -213,7 +209,7 @@ const App: React.FC = () => {
               </form>
             </div>
             
-            {/* Status Feedback for ENS */}
+            {/* Status Feedback */}
             {isSearching && searchStatus && (
                 <div className="mt-4 text-indigo-300 text-sm animate-pulse flex justify-center items-center gap-2">
                     <Loader2 className="w-3 h-3 animate-spin" /> {searchStatus}
@@ -240,7 +236,7 @@ const App: React.FC = () => {
                     )}
                 </div>
                 <div className="text-slate-400 text-sm">
-                    Found {attestations.length} credentials on {selectedChain.name}
+                    Found {attestations.length} credentials across {selectedGroup}
                 </div>
               </div>
 
@@ -371,7 +367,7 @@ const App: React.FC = () => {
               {attestations.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {attestations.map((att) => (
-                    <AttestationCard key={att.uid} attestation={att} />
+                    <AttestationCard key={att.uid + att.network} attestation={att} />
                   ))}
                 </div>
               ) : (
@@ -379,7 +375,7 @@ const App: React.FC = () => {
                   <AlertCircle className="w-12 h-12 text-slate-500 mx-auto mb-4" />
                   <h3 className="text-xl font-medium text-slate-300 mb-2">No Credentials Found</h3>
                   <p className="text-slate-500 max-w-md mx-auto mb-6">
-                    This address doesn't have any known credentials on {selectedChain.name} yet.
+                    This address doesn't have any known credentials on <strong>{selectedGroup}</strong> networks yet.
                   </p>
                   <button 
                     onClick={() => setView(AppView.TUTORIALS)}

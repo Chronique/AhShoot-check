@@ -1,95 +1,133 @@
 import { Chain, SchemaDefinition } from './types';
 
 export const CHAINS: Chain[] = [
-  // --- EVM (Solidity) ---
+  // --- Ethereum L1 ---
   { 
     id: 1, 
     name: 'Ethereum', 
-    icon: '🔷', 
     color: 'blue-500', 
     graphqlUrl: 'https://easscan.org/graphql',
-    vmType: 'EVM'
+    vmType: 'EVM',
+    group: 'Ethereum L1'
+  },
+  
+  // --- Optimistic Rollups ---
+  { 
+    id: 10, 
+    name: 'Optimism', 
+    color: 'red-500', 
+    graphqlUrl: 'https://optimism.easscan.org/graphql',
+    vmType: 'EVM',
+    group: 'Optimism Rollups'
   },
   { 
     id: 8453, 
     name: 'Base', 
-    icon: '🔵', 
     color: 'blue-600', 
     graphqlUrl: 'https://base.easscan.org/graphql',
-    vmType: 'EVM'
-  },
-  { 
-    id: 10, 
-    name: 'Optimism', 
-    icon: '🔴', 
-    color: 'red-500', 
-    graphqlUrl: 'https://optimism.easscan.org/graphql',
-    vmType: 'EVM'
+    vmType: 'EVM',
+    group: 'Optimism Rollups'
   },
   { 
     id: 42161, 
     name: 'Arbitrum', 
-    icon: '💙', 
     color: 'cyan-600', 
     graphqlUrl: 'https://arbitrum.easscan.org/graphql',
-    vmType: 'EVM'
+    vmType: 'EVM',
+    group: 'Optimism Rollups'
   },
   { 
-    id: 137, 
-    name: 'Polygon', 
-    icon: '💜', 
-    color: 'purple-500', 
-    graphqlUrl: 'https://polygon.easscan.org/graphql',
-    vmType: 'EVM'
+    id: 1946, 
+    name: 'Soneium', 
+    color: 'slate-400', 
+    // graphqlUrl: Pending
+    vmType: 'EVM',
+    group: 'Optimism Rollups'
   },
+  { 
+    id: 763373, 
+    name: 'Ink', 
+    color: 'purple-600', 
+    // graphqlUrl: Pending
+    vmType: 'EVM',
+    group: 'Optimism Rollups'
+  },
+  { 
+    id: 'tempo-testnet', 
+    name: 'Tempo', 
+    color: 'orange-400', 
+    // graphqlUrl: Pending
+    vmType: 'EVM',
+    group: 'Optimism Rollups'
+  },
+  { 
+    id: 'arc-testnet', 
+    name: 'Arc', 
+    color: 'indigo-400', 
+    // graphqlUrl: Pending
+    vmType: 'EVM',
+    group: 'Optimism Rollups'
+  },
+
+  // --- ZK Rollups ---
   { 
     id: 59144, 
     name: 'Linea', 
-    icon: '🖤', 
     color: 'slate-200', 
     graphqlUrl: 'https://linea.easscan.org/graphql',
-    vmType: 'EVM'
+    vmType: 'EVM',
+    group: 'ZK Rollups'
   },
   { 
     id: 534352, 
     name: 'Scroll', 
-    icon: '📜', 
     color: 'amber-200', 
     graphqlUrl: 'https://scroll.easscan.org/graphql',
-    vmType: 'EVM'
+    vmType: 'EVM',
+    group: 'ZK Rollups'
+  },
+
+  // --- Sidechains / Validium / L1s ---
+  { 
+    id: 137, 
+    name: 'Polygon', 
+    color: 'purple-500', 
+    graphqlUrl: 'https://polygon.easscan.org/graphql',
+    vmType: 'EVM',
+    group: 'Sidechains / Validium'
   },
   { 
     id: 42220, 
     name: 'Celo', 
-    icon: '🟢', 
     color: 'green-400', 
     graphqlUrl: 'https://celo.easscan.org/graphql',
-    vmType: 'EVM'
+    vmType: 'EVM',
+    group: 'Sidechains / Validium'
   },
   
-  // --- SVM (Rust) ---
+  // --- SVM ---
   {
     id: 'solana',
     name: 'Solana',
-    icon: '🟣',
     color: 'purple-400',
-    vmType: 'SVM'
+    vmType: 'SVM',
+    group: 'SVM'
   },
 
   // --- MoveVM ---
   {
     id: 'aptos',
     name: 'Aptos',
-    icon: '⚫',
     color: 'slate-200',
-    vmType: 'MoveVM'
+    vmType: 'MoveVM',
+    group: 'MoveVM'
   },
   {
     id: 'sui',
     name: 'Sui',
-    icon: '💧',
     color: 'blue-300',
-    vmType: 'MoveVM'
+    vmType: 'MoveVM',
+    group: 'MoveVM'
   }
 ];
 

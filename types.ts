@@ -1,12 +1,14 @@
+
 export type VMType = 'EVM' | 'SVM' | 'MoveVM';
 
 export interface Chain {
   id: number | string;
   name: string;
-  icon: string;
+  // Icon removed for cleaner UI as requested
   color: string;
   graphqlUrl?: string;
   vmType: VMType;
+  group: string; // New field for technical categorization (e.g. "Optimistic Rollup", "ZK Rollup")
 }
 
 export interface SchemaDefinition {
@@ -27,6 +29,8 @@ export interface Attestation {
   data: string; // Decoded data or raw
   schemaName?: string;
   provider?: string;
+  network: string; // The specific chain name (e.g. "Base", "Arbitrum")
+  networkColor: string;
 }
 
 export interface TutorialRequest {

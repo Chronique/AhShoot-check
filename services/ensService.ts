@@ -1,8 +1,7 @@
 import { JsonRpcProvider } from 'ethers';
 
-// Use LlamaRPC or Ankr for better compatibility with ethers v6 ENS resolution.
-// Cloudflare often returns "missing revert data" for ENS calls.
-const provider = new JsonRpcProvider('https://eth.llamarpc.com');
+// Use Ankr RPC which is generally more stable for eth_call than LlamaRPC public endpoint
+const provider = new JsonRpcProvider('https://rpc.ankr.com/eth');
 
 export const resolveEnsName = async (name: string): Promise<string | null> => {
   // Basic validation

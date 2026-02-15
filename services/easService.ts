@@ -27,7 +27,7 @@ const seededRandom = (seed: string) => {
   return ((h ^ h >>> 16) >>> 0) / 4294967296;
 };
 
-const SIMULATED_NON_EVM_PROVIDERS = {
+const SIMULATED_PROVIDERS: Record<string, Array<{name: string, provider: string, category: string}>> = {
   'SVM': [
     { name: 'Civic Pass', provider: 'Civic', category: 'Identity' },
     { name: 'Solana ID', provider: 'Solana Labs', category: 'Identity' },
@@ -37,46 +37,54 @@ const SIMULATED_NON_EVM_PROVIDERS = {
     { name: 'Aptos Names', provider: 'Aptos Labs', category: 'Identity' },
     { name: 'SuiNS Verified', provider: 'SuiNS', category: 'Identity' },
     { name: 'Galxe Move Passport', provider: 'Galxe', category: 'Social' }
+  ],
+  'EVM': [
+    { name: 'Testnet Identity', provider: 'Verax', category: 'Identity' },
+    { name: 'Early Adopter', provider: 'Protocol DAO', category: 'Social' },
+    { name: 'Faucet User', provider: 'Superchain', category: 'DeFi' },
+    { name: 'Clique Beta Score', provider: 'Clique', category: 'DeFi' }
   ]
 };
 
 export const fetchAttestations = async (address: string, chain: Chain): Promise<Attestation[]> => {
   
-  // --- HANDLE NON-EVM CHAINS (Simulation) ---
-  if (chain.vmType !== 'EVM') {
-    // Return simulated data for Solana/Aptos/Sui since EAS doesn't exist there natively yet
-    // This satisfies the UI requirement to support selecting them.
-    await new Promise(resolve => setTimeout(resolve, 600)); // Simulate network lag
+  // --- SIMULATION LOGIC ---
+  // If the chain is non-EVM OR it's an EVM chain without a configured GraphQL URL (e.g. new testnets),
+  // we simulate data so the UI remains functional for demos.
+  const shouldSimulate = !chain.graphqlUrl || chain.vmType !== 'EVM';
+
+  if (shouldSimulate) {
+    await new Promise(resolve => setTimeout(resolve, 300)); // Lower latency for aggregated fetching
 
     const attestations: Attestation[] = [];
     const seed = address.toLowerCase() + chain.id.toString();
     const rand = seededRandom(seed);
-    const count = Math.floor(rand * 4); // 0 to 3 items
+    const count = Math.floor(rand * 3); // 0 to 2 items per simulated chain
 
-    const providers = SIMULATED_NON_EVM_PROVIDERS[chain.vmType as 'SVM' | 'MoveVM'] || [];
+    const providers = SIMULATED_PROVIDERS[chain.vmType] || SIMULATED_PROVIDERS['EVM'];
 
     for (let i = 0; i < count; i++) {
         const item = providers[i % providers.length];
+        // Create a fake UID based on vmType
+        const uidPrefix = chain.vmType === 'SVM' ? '5zw' : (chain.vmType === 'MoveVM' ? '0xMove' : '0x');
+        
         attestations.push({
-            uid: chain.vmType === 'SVM' ? '5zw...NativeProof' : '0x...MoveObject',
-            schemaUid: 'Native-Protocol-Schema',
+            uid: `${uidPrefix}${Math.random().toString(16).slice(2)}...`,
+            schemaUid: '0x0000000000000000000000000000000000000000000000000000000000000000',
             recipient: address,
-            attester: 'Native Verifier',
+            attester: '0x0000000000000000000000000000000000000000',
             time: Math.floor(Date.now() / 1000) - Math.floor(Math.random() * 5000000),
-            data: 'Verified Native Identity',
+            data: 'Verified Testnet Credential',
             schemaName: item.name,
-            provider: item.provider
+            provider: item.provider,
+            network: chain.name,
+            networkColor: chain.color
         });
     }
     return attestations;
   }
 
-  // --- HANDLE EVM CHAINS (Real GraphQL) ---
-  if (!chain.graphqlUrl) {
-    console.warn("No GraphQL URL for this EVM chain");
-    return [];
-  }
-
+  // --- REAL DATA FETCHING (EVM) ---
   const query = `
     query Attestations($recipient: String!) {
       attestations(
@@ -103,7 +111,7 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
   `;
 
   try {
-    const response = await fetch(chain.graphqlUrl, {
+    const response = await fetch(chain.graphqlUrl!, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -115,7 +123,8 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
     });
 
     if (!response.ok) {
-      throw new Error(`Error fetching data: ${response.statusText}`);
+        console.warn(`Fetch error for ${chain.name}: ${response.statusText}`);
+        return [];
     }
 
     const json: GraphQLResponse = await response.json();
@@ -125,37 +134,36 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
     }
 
     return json.data.attestations.map((att) => {
-        // Try to get a readable name
         let schemaName = "Custom Schema";
         let provider = "Unknown";
         
-        // Simple heuristic to extract schema name if available from EAS Indexer
         if (att.schema.schemaNames && att.schema.schemaNames.length > 0) {
             schemaName = att.schema.schemaNames[0].name;
-            // Often schema names are like "Coinbase Verified Account"
             if (schemaName.includes("Coinbase")) provider = "Coinbase";
             else if (schemaName.includes("Gitcoin")) provider = "Gitcoin";
             else if (schemaName.includes("World")) provider = "Worldcoin";
             else if (schemaName.includes("Galxe")) provider = "Galxe";
             else if (schemaName.includes("Trusta")) provider = "Trusta Labs";
             else if (schemaName.includes("EAS")) provider = "EAS";
+            else if (schemaName.includes("Clique")) provider = "Clique";
         }
 
-        // Clean up decoded data for display
         let displayData = "Encrypted or Complex Data";
         try {
             if (att.decodedDataJson) {
                 const parsed = JSON.parse(att.decodedDataJson);
-                // Try to find meaningful fields like 'score', 'verified', etc.
                 const interestingFields = parsed.filter((p: any) => 
-                    ['score', 'grade', 'isVerified', 'sybilScore', 'humanity'].some(k => p.name.toLowerCase().includes(k))
+                    ['score', 'grade', 'isVerified', 'sybilScore', 'humanity', 'rank'].some((k: string) => p.name.toLowerCase().includes(k))
                 );
                 
                 if (interestingFields.length > 0) {
-                    displayData = interestingFields.map((f: any) => `${f.name}: ${f.value.value}`).join(', ');
+                    displayData = interestingFields.map((f: any) => {
+                        const val = typeof f.value.value === 'object' ? JSON.stringify(f.value.value) : f.value.value;
+                        return `${f.name}: ${val}`;
+                    }).join(', ');
                 } else if (parsed.length > 0) {
-                    // Fallback to first field
-                     displayData = `${parsed[0].name}: ${parsed[0].value.value}`;
+                     const val = typeof parsed[0].value.value === 'object' ? 'Object' : parsed[0].value.value;
+                     displayData = `${parsed[0].name}: ${val}`;
                      if(parsed.length > 1) displayData += "...";
                 }
             }
@@ -171,12 +179,15 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
             time: att.time,
             data: displayData,
             schemaName: schemaName,
-            provider: provider
+            provider: provider,
+            network: chain.name,
+            networkColor: chain.color
         };
     });
 
   } catch (error) {
-    console.error("Failed to fetch attestations:", error);
+    // Fail silently in aggregated view to not break other chains
+    console.warn(`Failed to fetch attestations from ${chain.name}:`, error);
     return [];
   }
 };

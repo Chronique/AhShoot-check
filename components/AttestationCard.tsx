@@ -1,6 +1,6 @@
 import React from 'react';
 import { Attestation } from '../types';
-import { ShieldCheck, Clock, Hash, ExternalLink } from 'lucide-react';
+import { ShieldCheck, Clock, Hash, ExternalLink, Network } from 'lucide-react';
 
 interface AttestationCardProps {
   attestation: Attestation;
@@ -40,9 +40,11 @@ export const AttestationCard: React.FC<AttestationCardProps> = ({ attestation })
       </div>
       
       <div className="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center">
-        <span className="text-xs font-mono text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded">
-          Verified
+        {/* Network Badge */}
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border bg-${attestation.networkColor}/10 text-${attestation.networkColor} border-${attestation.networkColor}/20 flex items-center gap-1`}>
+            <Network className="w-3 h-3" /> {attestation.network}
         </span>
+
         <span className="text-xs text-slate-500 font-mono">
             By: {attestation.attester.slice(0, 6)}...
         </span>

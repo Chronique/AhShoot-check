@@ -16,7 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView }) => {
             <Layout className="w-5 h-5 text-white" />
           </div>
           <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
-            EAS Nexus
+            AH SHOOT
           </span>
         </div>
 

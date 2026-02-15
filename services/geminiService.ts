@@ -10,6 +10,21 @@ const getClient = () => {
   return new GoogleGenAI({ apiKey });
 };
 
+// Robust check for rate limiting errors
+const isQuotaError = (error: any): boolean => {
+  if (!error) return false;
+  // Check standard HTTP status
+  if (error.status === 429) return true;
+  
+  // Check error body if it exists
+  const errorBody = error.error || error;
+  if (errorBody?.code === 429 || errorBody?.status === 'RESOURCE_EXHAUSTED') return true;
+
+  // Check message string
+  const msg = (error.message || JSON.stringify(error)).toLowerCase();
+  return msg.includes('429') || msg.includes('quota') || msg.includes('resource_exhausted');
+};
+
 export const generateTutorial = async (schema: SchemaDefinition, chainName: string): Promise<string> => {
   const client = getClient();
   if (!client) return "Error: No API Key provided. Please configure your API key to view the tutorial.";
@@ -51,28 +66,30 @@ export const generateTutorial = async (schema: SchemaDefinition, chainName: stri
 
     return response.text || "Failed to generate tutorial content.";
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    
-    // Specific handling for Rate Limit / Quota Exceeded
-    if (error.status === 429 || (error.message && error.message.includes('429'))) {
+    if (isQuotaError(error)) {
+        console.warn("Gemini Quota Exceeded (Tutorial) - Returning fallback message.");
         return `
-## ⚠️ AI Service Unavailable (Quota Exceeded)
+## ⚠️ AI Service High Traffic
 
-The AI tutorial generator is currently experiencing extremely high demand and has temporarily reached its usage limit.
+The AI tutorial generator is currently experiencing high demand (Rate Limit 429).
 
-### Quick Summary for **${schema.name}**
+### Quick Summary: **${schema.name}**
 
 *   **Provider**: ${schema.provider}
 *   **Category**: ${schema.category}
 *   **Description**: ${schema.description}
 
-### What to do next?
-1.  **Wait a few minutes**: The API quota resets frequently.
-2.  **Check Official Docs**: Visit the provider's website (${schema.provider}) for the most up-to-date guide.
-3.  **Try again later**: This feature will automatically restore once traffic subsides.
+### How to Verify Manually
+1.  **Visit the Provider**: Go to the official ${schema.provider} website.
+2.  **Connect Wallet**: Connect your wallet on the network **${chainName}**.
+3.  **Follow Steps**: Look for a "Verify" or "Passport" section in their app.
+4.  **Wait**: Verification usually takes 1-5 minutes to appear on-chain.
+
+_Please try the AI Guide again in a few minutes._
         `;
     }
 
+    console.error("Gemini API Error:", error);
     return "Sorry, I couldn't generate the tutorial at this moment. Please try again later.";
   }
 };
@@ -147,7 +164,11 @@ export const analyzeAttestationPortfolio = async (attestations: string[]): Promi
         }
         return generateFallback();
       } catch (error) {
-        console.warn("Gemini API Error (likely quota), using fallback:", error);
+        if (isQuotaError(error)) {
+            console.warn("Gemini Quota Exceeded (Analysis) - Using fallback simulation.");
+        } else {
+            console.warn("Gemini Analysis Error - Using fallback:", error);
+        }
         return generateFallback();
       }
 }

@@ -18,70 +18,13 @@ interface GraphQLResponse {
   };
 }
 
-// Pseudo-random number generator for simulation consistency
-const seededRandom = (seed: string) => {
-  let h = 0xdeadbeef;
-  for (let i = 0; i < seed.length; i++) {
-    h = Math.imul(h ^ seed.charCodeAt(i), 2654435761);
-  }
-  return ((h ^ h >>> 16) >>> 0) / 4294967296;
-};
-
-const SIMULATED_PROVIDERS: Record<string, Array<{name: string, provider: string, category: string}>> = {
-  'SVM': [
-    { name: 'Civic Pass', provider: 'Civic', category: 'Identity' },
-    { name: 'Solana ID', provider: 'Solana Labs', category: 'Identity' },
-    { name: 'Wormhole Verified', provider: 'Wormhole', category: 'Bridge' }
-  ],
-  'MoveVM': [
-    { name: 'Aptos Names', provider: 'Aptos Labs', category: 'Identity' },
-    { name: 'SuiNS Verified', provider: 'SuiNS', category: 'Identity' },
-    { name: 'Galxe Move Passport', provider: 'Galxe', category: 'Social' }
-  ],
-  'EVM': [
-    { name: 'Testnet Identity', provider: 'Verax', category: 'Identity' },
-    { name: 'Early Adopter', provider: 'Protocol DAO', category: 'Social' },
-    { name: 'Faucet User', provider: 'Superchain', category: 'DeFi' },
-    { name: 'Clique Beta Score', provider: 'Clique', category: 'DeFi' }
-  ]
-};
-
 export const fetchAttestations = async (address: string, chain: Chain): Promise<Attestation[]> => {
   
-  // --- SIMULATION LOGIC ---
-  // If the chain is non-EVM OR it's an EVM chain without a configured GraphQL URL (e.g. new testnets),
-  // we simulate data so the UI remains functional for demos.
-  const shouldSimulate = !chain.graphqlUrl || chain.vmType !== 'EVM';
-
-  if (shouldSimulate) {
-    await new Promise(resolve => setTimeout(resolve, 300)); // Lower latency for aggregated fetching
-
-    const attestations: Attestation[] = [];
-    const seed = address.toLowerCase() + chain.id.toString();
-    const rand = seededRandom(seed);
-    const count = Math.floor(rand * 3); // 0 to 2 items per simulated chain
-
-    const providers = SIMULATED_PROVIDERS[chain.vmType] || SIMULATED_PROVIDERS['EVM'];
-
-    for (let i = 0; i < count; i++) {
-        const item = providers[i % providers.length];
-        // Create a fake UID based on vmType
-        const uidPrefix = chain.vmType === 'SVM' ? '5zw' : (chain.vmType === 'MoveVM' ? '0xMove' : '0x');
-        
-        attestations.push({
-            uid: `${uidPrefix}${Math.random().toString(16).slice(2)}...`,
-            schemaUid: '0x0000000000000000000000000000000000000000000000000000000000000000',
-            recipient: address,
-            attester: '0x0000000000000000000000000000000000000000',
-            time: Math.floor(Date.now() / 1000) - Math.floor(Math.random() * 5000000),
-            data: 'Verified Testnet Credential',
-            schemaName: item.name,
-            provider: item.provider,
-            network: chain.name,
-            networkColor: chain.color
-        });
-    }
-    return attestations;
+  // STRICT REAL DATA POLICY
+  // The user requested to remove all dummy/simulated data.
+  // We only fetch if a valid GraphQL URL is present.
+  if (!chain.graphqlUrl) {
+    return [];
   }
 
   // --- REAL DATA FETCHING (EVM) ---
@@ -111,7 +54,7 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
   `;
 
   try {
-    const response = await fetch(chain.graphqlUrl!, {
+    const response = await fetch(chain.graphqlUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -133,7 +76,7 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
         return [];
     }
 
-    return json.data.attestations.map((att) => {
+    return json.data.attestations.map((att: any) => {
         let schemaName = "Custom Schema";
         let provider = "Unknown";
         

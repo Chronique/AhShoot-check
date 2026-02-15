@@ -6,10 +6,6 @@
     <title>EAS Nexus Explorer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-        // Safely polyfill process for browser environment
-        window.process = window.process || { env: { NODE_ENV: 'development' } };
-    </script>
     <style>
       body {
         font-family: 'Inter', sans-serif;
@@ -34,20 +30,18 @@
   <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-    "react-dom": "https://esm.sh/react-dom@18.2.0",
-    "lucide-react": "https://esm.sh/lucide-react@0.292.0?deps=react@18.2.0",
-    "@google/genai": "https://esm.sh/@google/genai@0.1.1",
-    "ethers": "https://esm.sh/ethers@6.11.1",
+    "lucide-react": "https://esm.sh/lucide-react@^0.564.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.41.0",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react/": "https://esm.sh/react@^19.2.4/"
+    "react-markdown": "https://esm.sh/react-markdown@^10.1.0",
+    "ethers": "https://esm.sh/ethers@6.11.1"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
   </body>
 </html>

@@ -7,7 +7,7 @@ import { Chain, Attestation, AppView, SchemaDefinition } from './types';
 import { fetchAttestations } from './services/easService';
 import { resolveEnsName } from './services/ensService';
 import { generateTutorial, analyzeAttestationPortfolio, AnalysisResult } from './services/geminiService';
-import { Search, Info, CheckCircle2, AlertCircle, ArrowRight, Sparkles, Filter, Gauge, UserCircle2, Loader2, Network, BrainCircuit, Database, Layers, ShieldCheck } from 'lucide-react';
+import { Search, Info, CheckCircle2, AlertCircle, ArrowRight, Sparkles, Filter, Gauge, UserCircle2, Loader2, Network, BrainCircuit, Database, Layers, ShieldCheck, Lock, Cpu, Fingerprint } from 'lucide-react';
 
 const App: React.FC = () => {
   // State
@@ -93,7 +93,7 @@ const App: React.FC = () => {
   };
 
   const openTutorial = async (schema: SchemaDefinition) => {
-    setTutorialTitle(`How to get: ${schema.name}`);
+    setTutorialTitle(`Learn: ${schema.name}`);
     setTutorialContent('');
     setIsTutorialOpen(true);
     setIsGeneratingTutorial(true);
@@ -107,6 +107,14 @@ const App: React.FC = () => {
     if (score >= 80) return 'text-green-400';
     if (score >= 50) return 'text-yellow-400';
     return 'text-red-400';
+  };
+
+  const getTagIcon = (tag: string) => {
+    if (tag.includes('TEE')) return <Cpu className="w-3 h-3 text-cyan-400" />;
+    if (tag.includes('ZK')) return <Lock className="w-3 h-3 text-purple-400" />;
+    if (tag.includes('Biometric') || tag.includes('Iris')) return <Fingerprint className="w-3 h-3 text-rose-400" />;
+    if (tag.includes('AI')) return <BrainCircuit className="w-3 h-3 text-emerald-400" />;
+    return <CheckCircle2 className="w-3 h-3 text-slate-400" />;
   };
 
   return (
@@ -453,7 +461,10 @@ const App: React.FC = () => {
                              
                              <div className="flex flex-wrap gap-2 mb-6">
                                 {schema.tags.slice(0, 3).map(tag => (
-                                    <span key={tag} className="text-[10px] text-slate-500 bg-slate-900 px-2 py-1 rounded">#{tag}</span>
+                                    <span key={tag} className="flex items-center gap-1 text-[10px] text-slate-300 bg-slate-900/80 border border-slate-800 px-2 py-1 rounded">
+                                        {getTagIcon(tag)}
+                                        {tag}
+                                    </span>
                                 ))}
                              </div>
 
@@ -462,7 +473,7 @@ const App: React.FC = () => {
                                 className="w-full py-3 rounded-xl bg-slate-700 hover:bg-indigo-600 text-white font-medium transition-colors flex items-center justify-center gap-2"
                              >
                                 <Info className="w-4 h-4" />
-                                Get Verified
+                                Learn & Verify
                              </button>
                          </div>
                     ))}

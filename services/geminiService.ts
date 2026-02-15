@@ -16,17 +16,32 @@ export const generateTutorial = async (schema: SchemaDefinition, chainName: stri
 
   try {
     const prompt = `
-      You are an expert Web3 guide. Create a concise, step-by-step tutorial on how to get the "${schema.name}" attestation (Schema UID: ${schema.uid}) on the ${chainName} blockchain.
+      You are a Senior Web3 Technical Writer. Create a comprehensive educational guide for the "${schema.name}" attestation.
       
-      The provider is ${schema.provider}.
+      **Context:**
+      - Provider: ${schema.provider}
+      - Description: ${schema.description}
+      - Tech Tags: ${schema.tags.join(', ')}
+      - Chain: ${chainName}
+
+      **Strict Content Requirements:**
       
-      Structure the response in Markdown:
-      1. **Prerequisites**: What user needs (wallet, funds).
-      2. **Step-by-Step Guide**: How to verify.
-      3. **Cost**: Estimated gas or fees.
-      4. **Why it's useful**: Benefits of this attestation.
+      1. **Technology Deep Dive (How it Works)**: 
+         - This is the most important section. Explain the UNDERLYING TECHNOLOGY.
+         - If the provider is **Clique**: You MUST explain **TEE (Trusted Execution Environment)**. Explain how user data is encrypted, sent to a secure enclave (like Intel SGX), processed privately off-chain, and only the result is verified on-chain. Mention "Privacy-Preserving Compute".
+         - If **ZK** (Holonym, World ID): Explain how Zero-Knowledge Proofs verify attributes without revealing raw data.
+         - If **Gitcoin/Trusta**: Explain the scoring algorithms and Sybil defense models.
       
-      Keep it practical and under 300 words.
+      2. **Prerequisites**:
+         - Wallet requirements, estimated funds (gas), and specific accounts needed (e.g., Twitter, Discord, Coinbase account).
+
+      3. **Step-by-Step Execution**:
+         - Clear, numbered list of actions the user must take.
+
+      4. **Value & Utility**:
+         - Why is this specific schema valuable? (e.g., "Access to under-collateralized loans", "Airdrop eligibility", "Governance weight").
+
+      **Format**: Markdown. Use bolding for key terms. Keep explanations accurate but accessible.
     `;
 
     const response = await client.models.generateContent({

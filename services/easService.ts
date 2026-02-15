@@ -49,23 +49,21 @@ const SIMULATED_PROVIDERS: Record<string, Array<{name: string, provider: string,
 export const fetchAttestations = async (address: string, chain: Chain): Promise<Attestation[]> => {
   
   // --- SIMULATION LOGIC ---
-  // If the chain is non-EVM OR it's an EVM chain without a configured GraphQL URL (e.g. new testnets),
-  // we simulate data so the UI remains functional for demos.
+  // Only simulate if no GraphQL URL is provided OR it is not an EVM chain
   const shouldSimulate = !chain.graphqlUrl || chain.vmType !== 'EVM';
 
   if (shouldSimulate) {
-    await new Promise(resolve => setTimeout(resolve, 300)); // Lower latency for aggregated fetching
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     const attestations: Attestation[] = [];
     const seed = address.toLowerCase() + chain.id.toString();
     const rand = seededRandom(seed);
-    const count = Math.floor(rand * 3); // 0 to 2 items per simulated chain
+    const count = Math.floor(rand * 3);
 
     const providers = SIMULATED_PROVIDERS[chain.vmType] || SIMULATED_PROVIDERS['EVM'];
 
     for (let i = 0; i < count; i++) {
         const item = providers[i % providers.length];
-        // Create a fake UID based on vmType
         const uidPrefix = chain.vmType === 'SVM' ? '5zw' : (chain.vmType === 'MoveVM' ? '0xMove' : '0x');
         
         attestations.push({
@@ -122,46 +120,40 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
       }),
     });
 
-    if (!response.ok) {
-        console.warn(`Fetch error for ${chain.name}: ${response.statusText}`);
-        return [];
-    }
+    if (!response.ok) return [];
 
     const json: GraphQLResponse = await response.json();
     
-    if (!json.data || !json.data.attestations) {
-        return [];
-    }
+    if (!json.data || !json.data.attestations) return [];
 
     return json.data.attestations.map((att) => {
-        let schemaName = "Custom Schema";
+        // Safe access with optional chaining - "The Clean Way"
+        let schemaName = att.schema?.schemaNames?.[0]?.name || "Custom Schema";
         let provider = "Unknown";
         
-        if (att.schema.schemaNames && att.schema.schemaNames.length > 0) {
-            schemaName = att.schema.schemaNames[0].name;
-            if (schemaName.includes("Coinbase")) provider = "Coinbase";
-            else if (schemaName.includes("Gitcoin")) provider = "Gitcoin";
-            else if (schemaName.includes("World")) provider = "Worldcoin";
-            else if (schemaName.includes("Galxe")) provider = "Galxe";
-            else if (schemaName.includes("Trusta")) provider = "Trusta Labs";
-            else if (schemaName.includes("EAS")) provider = "EAS";
-            else if (schemaName.includes("Clique")) provider = "Clique";
-        }
+        if (schemaName.includes("Coinbase")) provider = "Coinbase";
+        else if (schemaName.includes("Gitcoin")) provider = "Gitcoin";
+        else if (schemaName.includes("World")) provider = "Worldcoin";
+        else if (schemaName.includes("Galxe")) provider = "Galxe";
+        else if (schemaName.includes("Trusta")) provider = "Trusta Labs";
+        else if (schemaName.includes("EAS")) provider = "EAS";
+        else if (schemaName.includes("Clique")) provider = "Clique";
 
         let displayData = "Encrypted or Complex Data";
         try {
             if (att.decodedDataJson) {
                 const parsed = JSON.parse(att.decodedDataJson);
-                const interestingFields = parsed.filter((p: any) => 
+                // Try to find interesting readable fields
+                const interestingFields = Array.isArray(parsed) ? parsed.filter((p: any) => 
                     ['score', 'grade', 'isVerified', 'sybilScore', 'humanity', 'rank'].some((k: string) => p.name.toLowerCase().includes(k))
-                );
+                ) : [];
                 
                 if (interestingFields.length > 0) {
                     displayData = interestingFields.map((f: any) => {
                         const val = typeof f.value.value === 'object' ? JSON.stringify(f.value.value) : f.value.value;
                         return `${f.name}: ${val}`;
                     }).join(', ');
-                } else if (parsed.length > 0) {
+                } else if (Array.isArray(parsed) && parsed.length > 0) {
                      const val = typeof parsed[0].value.value === 'object' ? 'Object' : parsed[0].value.value;
                      displayData = `${parsed[0].name}: ${val}`;
                      if(parsed.length > 1) displayData += "...";
@@ -173,7 +165,7 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
 
         return {
             uid: att.id,
-            schemaUid: att.schema.id,
+            schemaUid: att.schema?.id || 'unknown',
             recipient: att.recipient,
             attester: att.attester,
             time: att.time,
@@ -186,7 +178,6 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
     });
 
   } catch (error) {
-    // Fail silently in aggregated view to not break other chains
     console.warn(`Failed to fetch attestations from ${chain.name}:`, error);
     return [];
   }

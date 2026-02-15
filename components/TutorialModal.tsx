@@ -1,8 +1,5 @@
 import React from 'react';
 import { X, Sparkles, Loader2 } from 'lucide-react';
-import ReactMarkdown from 'react-markdown'; // Note: ReactMarkdown isn't standard in the prompt libs, I'll use simple rendering or assume it's okay. 
-// Actually, to be safe and dependency-free, I will do a simple text parser or just display formatted text. 
-// I will stick to simple whitespace-pre-wrap for this specific constraint environment to avoid "Module not found".
 
 interface TutorialModalProps {
   isOpen: boolean;

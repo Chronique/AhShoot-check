@@ -83,13 +83,22 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
         // Use Optional Chaining (?.) to prevent crash if schema is missing
         if (att.schema?.schemaNames && att.schema.schemaNames.length > 0) {
             schemaName = att.schema.schemaNames[0].name;
-            if (schemaName.includes("Coinbase")) provider = "Coinbase";
-            else if (schemaName.includes("Gitcoin")) provider = "Gitcoin";
-            else if (schemaName.includes("World")) provider = "Worldcoin";
-            else if (schemaName.includes("Galxe")) provider = "Galxe";
-            else if (schemaName.includes("Trusta")) provider = "Trusta Labs";
-            else if (schemaName.includes("EAS")) provider = "EAS";
-            else if (schemaName.includes("Clique")) provider = "Clique";
+            const lowerName = schemaName.toLowerCase();
+
+            // --- REAL WORLD PROVIDER DETECTION ---
+            if (lowerName.includes("coinbase")) provider = "Coinbase";
+            else if (lowerName.includes("gitcoin")) provider = "Gitcoin";
+            else if (lowerName.includes("world")) provider = "Worldcoin";
+            else if (lowerName.includes("galxe")) provider = "Galxe";
+            else if (lowerName.includes("trusta")) provider = "Trusta Labs";
+            else if (lowerName.includes("eas")) provider = "EAS";
+            else if (lowerName.includes("clique")) provider = "Clique";
+            else if (lowerName.includes("farcaster") || lowerName.includes("fid")) provider = "Farcaster";
+            else if (lowerName.includes("blackbird")) provider = "Blackbird";
+            else if (lowerName.includes("guild")) provider = "Guild.xyz";
+            else if (lowerName.includes("jokerace")) provider = "Jokerace";
+            else if (lowerName.includes("optimism") || lowerName.includes("retropgf")) provider = "Optimism";
+            else if (lowerName.includes("base")) provider = "Base";
         }
 
         let displayData = "Encrypted or Complex Data";
@@ -99,7 +108,7 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
                 
                 // Ensure parsed is an array before filtering
                 const interestingFields = Array.isArray(parsed) ? parsed.filter((p: any) => 
-                    ['score', 'grade', 'isVerified', 'sybilScore', 'humanity', 'rank'].some((k: string) => p.name.toLowerCase().includes(k))
+                    ['score', 'grade', 'isverified', 'sybilscore', 'humanity', 'rank', 'role', 'name', 'membership'].some((k: string) => p.name.toLowerCase().includes(k))
                 ) : [];
                 
                 if (interestingFields.length > 0) {

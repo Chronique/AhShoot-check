@@ -1,6 +1,5 @@
 import React from 'react';
 import { Attestation } from '../types';
-import { ShieldCheck, Clock, Hash, ExternalLink } from 'lucide-react';
 
 interface AttestationCardProps {
   attestation: Attestation;
@@ -12,15 +11,15 @@ export const AttestationCard: React.FC<AttestationCardProps> = ({ attestation })
   return (
     <div className="group relative bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-indigo-500/50 rounded-xl p-5 transition-all duration-300">
       <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-        <ExternalLink className="w-4 h-4 text-slate-400 hover:text-white cursor-pointer" />
+        <span className="material-symbols-rounded text-slate-400 hover:text-white cursor-pointer text-base">open_in_new</span>
       </div>
       
       <div className="flex items-start gap-4">
         {/* If we have a provider logo (passed through complex means) or just use generic shield, 
             for now we keep the shield but we could enhance this later. 
             The Network Logo is the main request. */}
-        <div className="p-3 rounded-full bg-slate-700/50 text-indigo-400">
-          <ShieldCheck className="w-6 h-6" />
+        <div className="p-3 rounded-full bg-slate-700/50 text-indigo-400 flex items-center justify-center">
+          <span className="material-symbols-rounded text-2xl">verified_user</span>
         </div>
         
         <div className="flex-1 overflow-hidden">
@@ -31,11 +30,11 @@ export const AttestationCard: React.FC<AttestationCardProps> = ({ attestation })
           
           <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
             <div className="flex items-center gap-1">
-              <Hash className="w-3 h-3" />
+              <span className="material-symbols-rounded text-[14px]">tag</span>
               <span className="truncate" title={attestation.uid}>{attestation.uid.slice(0, 10)}...</span>
             </div>
             <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
+              <span className="material-symbols-rounded text-[14px]">schedule</span>
               <span>{date}</span>
             </div>
           </div>

@@ -1,5 +1,4 @@
 import React from 'react';
-import { X, Sparkles, Loader2 } from 'lucide-react';
 
 interface TutorialModalProps {
   isOpen: boolean;
@@ -19,11 +18,11 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose, t
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-indigo-400" />
+            <span className="material-symbols-rounded text-indigo-400 text-2xl">auto_awesome</span>
             <h2 className="text-xl font-bold text-white">{title}</h2>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors flex items-center justify-center">
+            <span className="material-symbols-rounded text-xl">close</span>
           </button>
         </div>
 
@@ -31,7 +30,7 @@ export const TutorialModal: React.FC<TutorialModalProps> = ({ isOpen, onClose, t
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-64 gap-4 text-slate-400">
-              <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+              <span className="material-symbols-rounded text-indigo-500 animate-spin text-4xl">progress_activity</span>
               <p className="animate-pulse">Generating guide with Gemini AI...</p>
             </div>
           ) : (

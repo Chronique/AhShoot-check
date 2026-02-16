@@ -17,6 +17,7 @@ export interface SchemaDefinition {
   description: string;
   provider: string; 
   logoUrl?: string; // New: Provider logo (e.g., Gitcoin logo)
+  docsUrl: string; // New: Link to official documentation
   category: 'Identity' | 'DeFi' | 'Social' | 'Governance' | 'Biometric' | 'ZK';
   tags: string[];
 }
@@ -46,6 +47,12 @@ export interface AnalysisResult {
   analysis: string;
   louvainCluster: string; 
   lightgbmConfidence: number; 
+}
+
+export interface ChatMessage {
+  role: 'user' | 'agent' | 'system';
+  content: string;
+  timestamp: number;
 }
 
 export enum AppView {

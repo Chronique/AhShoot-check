@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { AttestationCard } from './components/AttestationCard';
-import { TutorialModal } from './components/TutorialModal';
 import { CHAINS, POPULAR_SCHEMAS } from './constants';
 import { Chain, Attestation, AppView, SchemaDefinition } from './types';
 import { fetchAttestations } from './services/easService';
 import { resolveEnsName } from './services/ensService';
-import { generateTutorial, analyzeAttestationPortfolio, AnalysisResult } from './services/geminiService';
-import { Search, Info, CheckCircle2, AlertCircle, ArrowRight, Sparkles, Filter, Gauge, UserCircle2, Loader2, Network, BrainCircuit, Database, Layers, ShieldCheck, Lock, Cpu, Fingerprint } from 'lucide-react';
+import { analyzeAttestationPortfolio, AnalysisResult } from './services/geminiService';
+import { TerminalAgent } from './components/TerminalAgent';
 
 const App: React.FC = () => {
   // State
@@ -27,12 +26,6 @@ const App: React.FC = () => {
   // Analysis State
   const [portfolioAnalysis, setPortfolioAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  
-  // Tutorial State
-  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
-  const [tutorialContent, setTutorialContent] = useState('');
-  const [tutorialTitle, setTutorialTitle] = useState('');
-  const [isGeneratingTutorial, setIsGeneratingTutorial] = useState(false);
   
   // Filtering
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -109,29 +102,14 @@ const App: React.FC = () => {
     }
   };
 
-  const openTutorial = async (schema: SchemaDefinition) => {
-    setTutorialTitle(`Learn: ${schema.name}`);
-    setTutorialContent('');
-    setIsTutorialOpen(true);
-    setIsGeneratingTutorial(true);
-
-    const content = await generateTutorial(schema, selectedGroup);
-    setTutorialContent(content);
-    setIsGeneratingTutorial(false);
+  const handleOpenDocs = (url: string) => {
+      window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-400';
     if (score >= 50) return 'text-yellow-400';
     return 'text-red-400';
-  };
-
-  const getTagIcon = (tag: string) => {
-    if (tag.includes('TEE')) return <Cpu className="w-3 h-3 text-cyan-400" />;
-    if (tag.includes('ZK')) return <Lock className="w-3 h-3 text-purple-400" />;
-    if (tag.includes('Biometric') || tag.includes('Iris')) return <Fingerprint className="w-3 h-3 text-rose-400" />;
-    if (tag.includes('AI')) return <BrainCircuit className="w-3 h-3 text-emerald-400" />;
-    return <CheckCircle2 className="w-3 h-3 text-slate-400" />;
   };
 
   return (
@@ -193,9 +171,9 @@ const App: React.FC = () => {
                           setErrorMsg('');
                           setHasSearched(false);
                         }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white flex items-center justify-center"
                     >
-                        ✕
+                        <span className="material-symbols-rounded">close</span>
                     </button>
                   )}
                 </div>
@@ -208,11 +186,11 @@ const App: React.FC = () => {
                 >
                   {isSearching ? (
                     <div className="flex items-center gap-2">
-                       <Loader2 className="w-4 h-4 animate-spin" />
+                       <span className="material-symbols-rounded animate-spin">progress_activity</span>
                     </div>
                   ) : (
                     <>
-                      <Search className="w-5 h-5" />
+                      <span className="material-symbols-rounded">search</span>
                       <span>Check</span>
                     </>
                   )}
@@ -223,13 +201,13 @@ const App: React.FC = () => {
             {/* Status & Error Feedback */}
             {isSearching && searchStatus && (
                 <div className="mt-4 text-indigo-300 text-sm animate-pulse flex justify-center items-center gap-2">
-                    <Loader2 className="w-3 h-3 animate-spin" /> {searchStatus}
+                    <span className="material-symbols-rounded animate-spin text-base">progress_activity</span> {searchStatus}
                 </div>
             )}
             
             {errorMsg && (
               <div className="mt-4 bg-red-500/10 border border-red-500/20 text-red-300 px-4 py-2 rounded-lg inline-flex items-center gap-2 text-sm animate-in fade-in">
-                <AlertCircle className="w-4 h-4" />
+                <span className="material-symbols-rounded text-lg">error</span>
                 {errorMsg}
               </div>
             )}
@@ -266,28 +244,28 @@ const App: React.FC = () => {
                     
                     <div className="flex justify-between items-start mb-6">
                         <h3 className="text-sm font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
-                            <Sparkles className="w-4 h-4" /> 
+                            <span className="material-symbols-rounded text-lg">auto_awesome</span> 
                             Reputation & ML Analysis
                         </h3>
                         <div className="flex gap-2 flex-wrap">
                              <div className="px-2 py-1 bg-indigo-900/50 rounded text-xs text-indigo-200 border border-indigo-500/50 flex items-center gap-1">
-                                <ShieldCheck className="w-3 h-3" /> Clique TEE
+                                <span className="material-symbols-rounded text-[14px]">verified_user</span> Clique TEE
                              </div>
                              <div className="px-2 py-1 bg-slate-900/50 rounded text-xs text-slate-400 border border-slate-700 flex items-center gap-1">
-                                <Database className="w-3 h-3" /> Dune
+                                <span className="material-symbols-rounded text-[14px]">database</span> Dune
                              </div>
                              <div className="px-2 py-1 bg-slate-900/50 rounded text-xs text-slate-400 border border-slate-700 flex items-center gap-1">
-                                <Layers className="w-3 h-3" /> Allium
+                                <span className="material-symbols-rounded text-[14px]">layers</span> Allium
                              </div>
                              <div className="px-2 py-1 bg-slate-900/50 rounded text-xs text-slate-400 border border-slate-700 flex items-center gap-1">
-                                <BrainCircuit className="w-3 h-3" /> Chaos Labs
+                                <span className="material-symbols-rounded text-[14px]">psychology</span> Chaos Labs
                              </div>
                         </div>
                     </div>
 
                     {isAnalyzing ? (
                          <div className="flex items-center gap-3 py-12 justify-center text-slate-400 animate-pulse">
-                            <Gauge className="w-8 h-8 animate-spin-slow text-indigo-500" />
+                            <span className="material-symbols-rounded animate-spin-slow text-indigo-500 text-4xl">speed</span>
                             <span className="text-lg">Running TEE Secured ML inference...</span>
                          </div>
                     ) : portfolioAnalysis ? (
@@ -320,7 +298,7 @@ const App: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <UserCircle2 className="w-5 h-5 text-indigo-400" />
+                                    <span className="material-symbols-rounded text-indigo-400 text-2xl">account_circle</span>
                                     <span className="text-lg font-bold text-white">{portfolioAnalysis.persona}</span>
                                 </div>
                             </div>
@@ -336,7 +314,7 @@ const App: React.FC = () => {
                             {/* Col 3: ML Metrics */}
                             <div className="bg-slate-900/40 rounded-xl p-4 border border-slate-700/50">
                                 <h4 className="text-indigo-300 text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <Network className="w-4 h-4" /> Advanced Signals
+                                    <span className="material-symbols-rounded text-base">hub</span> Advanced Signals
                                 </h4>
                                 
                                 <div className="space-y-4">
@@ -369,8 +347,8 @@ const App: React.FC = () => {
 
                                     <div className="pt-2 border-t border-slate-700/50 flex gap-2 flex-wrap">
                                         <span className="text-[10px] text-slate-500 uppercase">Verified Sources:</span>
-                                        <span className="text-[10px] text-slate-400 flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-indigo-400" /> Subgraph</span>
-                                        <span className="text-[10px] text-slate-400 flex items-center gap-1"><CheckCircle2 className="w-3 h-3 text-indigo-400" /> Dune</span>
+                                        <span className="text-[10px] text-slate-400 flex items-center gap-1"><span className="material-symbols-rounded text-indigo-400 text-[12px]">check_circle</span> Subgraph</span>
+                                        <span className="text-[10px] text-slate-400 flex items-center gap-1"><span className="material-symbols-rounded text-indigo-400 text-[12px]">check_circle</span> Dune</span>
                                     </div>
                                 </div>
                             </div>
@@ -390,7 +368,7 @@ const App: React.FC = () => {
                 </div>
               ) : (
                 <div className="text-center py-16 bg-slate-800/30 rounded-2xl border border-dashed border-slate-700">
-                  <AlertCircle className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+                  <span className="material-symbols-rounded w-12 h-12 text-slate-500 mx-auto mb-4 text-5xl block">error</span>
                   <h3 className="text-xl font-medium text-slate-300 mb-2">No Credentials Found</h3>
                   <p className="text-slate-500 max-w-md mx-auto mb-6">
                     This address doesn't have any known credentials on <strong>{selectedGroup}</strong> networks yet.
@@ -399,7 +377,7 @@ const App: React.FC = () => {
                     onClick={() => setView(AppView.TUTORIALS)}
                     className="text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1 mx-auto"
                   >
-                    Learn how to get verified <ArrowRight className="w-4 h-4" />
+                    Learn how to get verified <span className="material-symbols-rounded text-base">arrow_forward</span>
                   </button>
                 </div>
               )}
@@ -410,7 +388,7 @@ const App: React.FC = () => {
            {!hasSearched && (
              <div className="max-w-5xl mx-auto mt-16">
                 <h3 className="text-xl font-bold text-slate-300 mb-6 flex items-center gap-2">
-                    <Info className="w-5 h-5" />
+                    <span className="material-symbols-rounded">info</span>
                     Popular Schemas to Verify
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -421,17 +399,18 @@ const App: React.FC = () => {
                                     <img src={schema.logoUrl} alt={schema.provider} className="w-8 h-8 rounded-full" />
                                 ) : (
                                     <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                                        <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                                        <span className="material-symbols-rounded text-indigo-400">verified_user</span>
                                     </div>
                                 )}
                                 <h4 className="font-semibold text-white">{schema.name}</h4>
                             </div>
                             <p className="text-sm text-slate-400 mb-4 h-10 line-clamp-2">{schema.description}</p>
                             <button 
-                                onClick={() => openTutorial(schema)}
-                                className="w-full py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm font-medium transition-colors text-white"
+                                onClick={() => handleOpenDocs(schema.docsUrl)}
+                                className="w-full py-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm font-medium transition-colors text-white flex items-center justify-center gap-2"
                             >
-                                View Guide
+                                <span className="material-symbols-rounded text-sm">open_in_new</span>
+                                Read Docs
                             </button>
                         </div>
                     ))}
@@ -441,71 +420,20 @@ const App: React.FC = () => {
         </main>
       )}
 
-      {/* TUTORIALS VIEW */}
+      {/* TUTORIALS / AGENT VIEW */}
       {view === AppView.TUTORIALS && (
-         <main className="flex-1 container mx-auto px-4 py-12">
-            <div className="max-w-6xl mx-auto">
-                <div className="mb-10 text-center">
-                    <h1 className="text-3xl font-bold text-white mb-4">Verification Center</h1>
-                    <p className="text-slate-400">Step-by-step guides to build your on-chain reputation.</p>
+         <main className="flex-1 container mx-auto px-4 py-8">
+            <div className="max-w-5xl mx-auto">
+                <div className="mb-6 text-center">
+                    <h1 className="text-2xl font-bold text-white mb-2 flex items-center justify-center gap-2">
+                        <span className="material-symbols-rounded text-indigo-400 text-3xl">terminal</span>
+                        Verification Agent
+                    </h1>
+                    <p className="text-slate-400 text-sm">Ask anything about verifying on-chain credentials.</p>
                 </div>
-
-                {/* Filter Tabs */}
-                <div className="flex flex-wrap gap-2 mb-8 justify-center">
-                    {categories.map(cat => (
-                        <button
-                            key={cat}
-                            onClick={() => setSelectedCategory(cat)}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                                selectedCategory === cat 
-                                ? 'bg-indigo-600 text-white' 
-                                : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
-                            }`}
-                        >
-                            {cat}
-                        </button>
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredSchemas.map((schema) => (
-                         <div key={schema.uid} className="bg-slate-800/40 border border-slate-700 hover:border-indigo-500/50 p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col">
-                             <div className="flex justify-between items-start mb-4">
-                                 <div className="flex items-center gap-2">
-                                     {schema.logoUrl && (
-                                         <img src={schema.logoUrl} alt={schema.provider} className="w-6 h-6 rounded-full" />
-                                     )}
-                                     <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded uppercase tracking-wider">
-                                        {schema.provider}
-                                     </span>
-                                 </div>
-                                 <span className="text-xs text-slate-500 border border-slate-700 px-2 py-1 rounded-full">
-                                    {schema.category}
-                                 </span>
-                             </div>
-                             
-                             <h3 className="text-xl font-bold text-white mb-2">{schema.name}</h3>
-                             <p className="text-slate-400 text-sm mb-6 flex-1">{schema.description}</p>
-                             
-                             <div className="flex flex-wrap gap-2 mb-6">
-                                {schema.tags.slice(0, 3).map(tag => (
-                                    <span key={tag} className="flex items-center gap-1 text-[10px] text-slate-300 bg-slate-900/80 border border-slate-800 px-2 py-1 rounded">
-                                        {getTagIcon(tag)}
-                                        {tag}
-                                    </span>
-                                ))}
-                             </div>
-
-                             <button 
-                                onClick={() => openTutorial(schema)}
-                                className="w-full py-3 rounded-xl bg-slate-700 hover:bg-indigo-600 text-white font-medium transition-colors flex items-center justify-center gap-2"
-                             >
-                                <Info className="w-4 h-4" />
-                                Learn & Verify
-                             </button>
-                         </div>
-                    ))}
-                </div>
+                
+                {/* Agent Component */}
+                <TerminalAgent />
             </div>
          </main>
       )}
@@ -517,15 +445,6 @@ const App: React.FC = () => {
             <p>Data provided by EAS GraphQL API (EVM), Dune Analytics & Ecosystem Simulators</p>
         </div>
       </footer>
-
-      {/* Tutorial Modal */}
-      <TutorialModal 
-        isOpen={isTutorialOpen} 
-        onClose={() => setIsTutorialOpen(false)} 
-        title={tutorialTitle}
-        content={tutorialContent}
-        isLoading={isGeneratingTutorial}
-      />
     </div>
   );
 };

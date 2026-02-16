@@ -1,6 +1,5 @@
 import React from 'react';
 import { AppView } from '../types';
-import { Layout, Compass, BookOpen } from 'lucide-react';
 
 interface NavbarProps {
   currentView: AppView;
@@ -12,8 +11,8 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView }) => {
     <nav className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView(AppView.EXPLORER)}>
-          <div className="p-2 bg-indigo-600 rounded-lg">
-            <Layout className="w-5 h-5 text-white" />
+          <div className="p-2 bg-indigo-600 rounded-lg flex items-center justify-center">
+            <span className="material-symbols-rounded text-white text-xl">grid_view</span>
           </div>
           <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
             AH SHOOT
@@ -29,7 +28,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView }) => {
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Compass className="w-4 h-4" />
+            <span className="material-symbols-rounded text-[18px]">explore</span>
             Explorer
           </button>
           <button
@@ -40,7 +39,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView, setView }) => {
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <BookOpen className="w-4 h-4" />
+            <span className="material-symbols-rounded text-[18px]">school</span>
             Learn
           </button>
         </div>

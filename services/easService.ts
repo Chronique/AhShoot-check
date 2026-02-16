@@ -20,14 +20,10 @@ interface GraphQLResponse {
 
 export const fetchAttestations = async (address: string, chain: Chain): Promise<Attestation[]> => {
   
-  // STRICT REAL DATA POLICY
-  // The user requested to remove all dummy/simulated data.
-  // We only fetch if a valid GraphQL URL is present.
   if (!chain.graphqlUrl) {
     return [];
   }
 
-  // --- REAL DATA FETCHING (EVM) ---
   const query = `
     query Attestations($recipient: String!) {
       attestations(
@@ -80,12 +76,10 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
         let schemaName = "Custom Schema";
         let provider = "Unknown";
         
-        // Use Optional Chaining (?.) to prevent crash if schema is missing
         if (att.schema?.schemaNames && att.schema.schemaNames.length > 0) {
             schemaName = att.schema.schemaNames[0].name;
             const lowerName = schemaName.toLowerCase();
 
-            // --- REAL WORLD PROVIDER DETECTION ---
             if (lowerName.includes("coinbase")) provider = "Coinbase";
             else if (lowerName.includes("gitcoin")) provider = "Gitcoin";
             else if (lowerName.includes("world")) provider = "Worldcoin";
@@ -106,7 +100,6 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
             if (att.decodedDataJson) {
                 const parsed = JSON.parse(att.decodedDataJson);
                 
-                // Ensure parsed is an array before filtering
                 const interestingFields = Array.isArray(parsed) ? parsed.filter((p: any) => 
                     ['score', 'grade', 'isverified', 'sybilscore', 'humanity', 'rank', 'role', 'name', 'membership'].some((k: string) => p.name.toLowerCase().includes(k))
                 ) : [];
@@ -123,12 +116,10 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
                 }
             }
         } catch (e) {
-            // Ignore parsing errors
         }
 
         return {
             uid: att.id,
-            // Safe access for schema ID
             schemaUid: att.schema?.id || 'unknown',
             recipient: att.recipient,
             attester: att.attester,
@@ -137,12 +128,12 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
             schemaName: schemaName,
             provider: provider,
             network: chain.name,
-            networkColor: chain.color
+            networkColor: chain.color,
+            networkLogo: chain.logoUrl // Passing the logo URL down
         };
     });
 
   } catch (error) {
-    // Fail silently in aggregated view to not break other chains
     console.warn(`Failed to fetch attestations from ${chain.name}:`, error);
     return [];
   }

@@ -4,18 +4,19 @@ export type VMType = 'EVM' | 'SVM' | 'MoveVM';
 export interface Chain {
   id: number | string;
   name: string;
-  // Icon removed for cleaner UI as requested
-  color: string;
+  color: string; // Kept for border/fallback styling
+  logoUrl: string; // New: URL to the official logo
   graphqlUrl?: string;
   vmType: VMType;
-  group: string; // New field for technical categorization (e.g. "Optimistic Rollup", "ZK Rollup")
+  group: string;
 }
 
 export interface SchemaDefinition {
   uid: string;
   name: string;
   description: string;
-  provider: string; // e.g., "Coinbase", "Gitcoin"
+  provider: string; 
+  logoUrl?: string; // New: Provider logo (e.g., Gitcoin logo)
   category: 'Identity' | 'DeFi' | 'Social' | 'Governance' | 'Biometric' | 'ZK';
   tags: string[];
 }
@@ -26,11 +27,12 @@ export interface Attestation {
   recipient: string;
   attester: string;
   time: number;
-  data: string; // Decoded data or raw
+  data: string;
   schemaName?: string;
   provider?: string;
-  network: string; // The specific chain name (e.g. "Base", "Arbitrum")
+  network: string;
   networkColor: string;
+  networkLogo?: string; // New: To display on the card
 }
 
 export interface TutorialRequest {
@@ -42,8 +44,8 @@ export interface AnalysisResult {
   score: number;
   persona: string;
   analysis: string;
-  louvainCluster: string; // e.g., "Core Community Node", "Sybil Cluster 4"
-  lightgbmConfidence: number; // e.g., 0.98
+  louvainCluster: string; 
+  lightgbmConfidence: number; 
 }
 
 export enum AppView {

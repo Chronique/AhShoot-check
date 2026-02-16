@@ -1,6 +1,6 @@
 import React from 'react';
 import { Attestation } from '../types';
-import { ShieldCheck, Clock, Hash, ExternalLink, Network } from 'lucide-react';
+import { ShieldCheck, Clock, Hash, ExternalLink } from 'lucide-react';
 
 interface AttestationCardProps {
   attestation: Attestation;
@@ -16,7 +16,10 @@ export const AttestationCard: React.FC<AttestationCardProps> = ({ attestation })
       </div>
       
       <div className="flex items-start gap-4">
-        <div className="p-3 rounded-full bg-green-500/10 text-green-400">
+        {/* If we have a provider logo (passed through complex means) or just use generic shield, 
+            for now we keep the shield but we could enhance this later. 
+            The Network Logo is the main request. */}
+        <div className="p-3 rounded-full bg-slate-700/50 text-indigo-400">
           <ShieldCheck className="w-6 h-6" />
         </div>
         
@@ -40,10 +43,24 @@ export const AttestationCard: React.FC<AttestationCardProps> = ({ attestation })
       </div>
       
       <div className="mt-4 pt-4 border-t border-slate-700/50 flex justify-between items-center">
-        {/* Network Badge */}
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border bg-${attestation.networkColor}/10 text-${attestation.networkColor} border-${attestation.networkColor}/20 flex items-center gap-1`}>
-            <Network className="w-3 h-3" /> {attestation.network}
-        </span>
+        {/* Network Badge with Real Logo */}
+        <div className={`flex items-center gap-2 px-2 py-1 rounded-full border border-slate-700 bg-slate-900/50`}>
+             {attestation.networkLogo ? (
+                 <img 
+                    src={attestation.networkLogo} 
+                    alt={attestation.network} 
+                    className="w-4 h-4 rounded-full object-contain"
+                    onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                 />
+             ) : (
+                 <div className={`w-3 h-3 rounded-full bg-${attestation.networkColor}`}></div>
+             )}
+             <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide">
+                {attestation.network}
+             </span>
+        </div>
 
         <span className="text-xs text-slate-500 font-mono">
             By: {attestation.attester.slice(0, 6)}...

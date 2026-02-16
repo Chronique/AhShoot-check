@@ -22,6 +22,7 @@ const App: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [searchStatus, setSearchStatus] = useState<string>('');
+  const [errorMsg, setErrorMsg] = useState<string>('');
   
   // Analysis State
   const [portfolioAnalysis, setPortfolioAnalysis] = useState<AnalysisResult | null>(null);
@@ -52,6 +53,7 @@ const App: React.FC = () => {
 
     setIsSearching(true);
     setHasSearched(false);
+    setErrorMsg('');
     setAttestations([]); 
     setPortfolioAnalysis(null);
     setResolvedAddress('');
@@ -63,11 +65,15 @@ const App: React.FC = () => {
       if (address.includes('.') && selectedGroup !== 'SVM' && selectedGroup !== 'MoveVM') {
         setSearchStatus('Resolving ENS...');
         const resolved = await resolveEnsName(address);
+        
         if (resolved) {
           targetAddress = resolved;
           setResolvedAddress(resolved);
         } else {
-          console.warn("Could not resolve ENS");
+          // If ENS resolution fails, we must stop because GraphQL expects a 0x address
+          setErrorMsg(`Could not resolve ENS name "${address}". Please double check the name or use a 0x address.`);
+          setIsSearching(false);
+          return;
         }
       }
 
@@ -96,7 +102,7 @@ const App: React.FC = () => {
       }
     } catch (error) {
       console.error(error);
-      setHasSearched(true); 
+      setErrorMsg("An unexpected error occurred during search.");
     } finally {
       setIsSearching(false);
       setSearchStatus('');
@@ -172,7 +178,10 @@ const App: React.FC = () => {
                     type="text" 
                     placeholder="Paste Address or ENS (e.g., vitalik.eth)"
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                    onChange={(e) => {
+                      setAddress(e.target.value);
+                      setErrorMsg(''); // Clear error on type
+                    }}
                     className="w-full h-12 pl-4 pr-12 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 outline-none hover:border-slate-600 transition-colors"
                   />
                   {address && (
@@ -181,6 +190,8 @@ const App: React.FC = () => {
                         onClick={() => {
                           setAddress('');
                           setResolvedAddress('');
+                          setErrorMsg('');
+                          setHasSearched(false);
                         }}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
                     >
@@ -209,16 +220,23 @@ const App: React.FC = () => {
               </form>
             </div>
             
-            {/* Status Feedback */}
+            {/* Status & Error Feedback */}
             {isSearching && searchStatus && (
                 <div className="mt-4 text-indigo-300 text-sm animate-pulse flex justify-center items-center gap-2">
                     <Loader2 className="w-3 h-3 animate-spin" /> {searchStatus}
                 </div>
             )}
+            
+            {errorMsg && (
+              <div className="mt-4 bg-red-500/10 border border-red-500/20 text-red-300 px-4 py-2 rounded-lg inline-flex items-center gap-2 text-sm animate-in fade-in">
+                <AlertCircle className="w-4 h-4" />
+                {errorMsg}
+              </div>
+            )}
           </div>
 
           {/* Results Section */}
-          {hasSearched && (
+          {hasSearched && !errorMsg && (
             <div className="max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-500">
               
               <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-2">
@@ -396,9 +414,18 @@ const App: React.FC = () => {
                     Popular Schemas to Verify
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {POPULAR_SCHEMAS.slice(0, 3).map(schema => (
+                    {POPULAR_SCHEMAS.slice(0, 6).map(schema => (
                         <div key={schema.uid} className="bg-slate-800/30 border border-slate-700 p-5 rounded-xl hover:border-slate-600 transition-colors">
-                            <h4 className="font-semibold text-white mb-2">{schema.name}</h4>
+                            <div className="flex items-center gap-3 mb-3">
+                                {schema.logoUrl ? (
+                                    <img src={schema.logoUrl} alt={schema.provider} className="w-8 h-8 rounded-full" />
+                                ) : (
+                                    <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                                        <ShieldCheck className="w-4 h-4 text-indigo-400" />
+                                    </div>
+                                )}
+                                <h4 className="font-semibold text-white">{schema.name}</h4>
+                            </div>
                             <p className="text-sm text-slate-400 mb-4 h-10 line-clamp-2">{schema.description}</p>
                             <button 
                                 onClick={() => openTutorial(schema)}
@@ -444,9 +471,14 @@ const App: React.FC = () => {
                     {filteredSchemas.map((schema) => (
                          <div key={schema.uid} className="bg-slate-800/40 border border-slate-700 hover:border-indigo-500/50 p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col">
                              <div className="flex justify-between items-start mb-4">
-                                 <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded uppercase tracking-wider">
-                                    {schema.provider}
-                                 </span>
+                                 <div className="flex items-center gap-2">
+                                     {schema.logoUrl && (
+                                         <img src={schema.logoUrl} alt={schema.provider} className="w-6 h-6 rounded-full" />
+                                     )}
+                                     <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-1 rounded uppercase tracking-wider">
+                                        {schema.provider}
+                                     </span>
+                                 </div>
                                  <span className="text-xs text-slate-500 border border-slate-700 px-2 py-1 rounded-full">
                                     {schema.category}
                                  </span>

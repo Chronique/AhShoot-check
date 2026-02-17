@@ -115,6 +115,9 @@ export const GMPortal: React.FC<GMPortalProps> = ({ connectedAddress, farcasterU
             setIsMining(false);
         }, 5000); 
     } else {
+        // Even if failed (e.g. reverted because already owned), refresh status
+        // This fixes cases where the UI didn't know the user owned it.
+        await checkIdentities();
         setIsMining(false);
     }
   };

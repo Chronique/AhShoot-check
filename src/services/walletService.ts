@@ -1,4 +1,3 @@
-
 import { BrowserProvider, Contract, JsonRpcProvider } from 'ethers';
 import { BASE_CHAIN_ID, LINEA_CHAIN_ID, BASE_CONTRACT_ADDRESS, LINEA_CONTRACT_ADDRESS, FACTORY_ABI, ERC721_ABI } from '../constants';
 import { sdk } from '@farcaster/miniapp-sdk';
@@ -12,7 +11,7 @@ declare global {
 // Helper to get the raw ethereum provider
 const getRawProvider = () => {
     // Check Farcaster SDK Provider first
-    if (sdk.wallet.ethProvider && typeof sdk.wallet.ethProvider.request === 'function') {
+    if (typeof sdk !== 'undefined' && sdk.wallet?.ethProvider) {
         return sdk.wallet.ethProvider;
     }
     // Check Window Ethereum
@@ -28,12 +27,12 @@ export const checkWalletConnection = async (): Promise<string | null> => {
   if (!rawProvider) return null;
 
   try {
-      // Use raw request to avoid Ethers network detection issues
+      // Use raw request to avoid Ethers network detection issues on locked wallets
       const accounts = await rawProvider.request({ method: 'eth_accounts' }) as string[];
       if (accounts && accounts.length > 0) return accounts[0];
       return null;
   } catch (error) {
-    console.error("Silent connection check failed:", error);
+    console.warn("Silent connection check failed:", error);
     return null;
   }
 };
@@ -60,7 +59,6 @@ export const connectWallet = async (): Promise<string | null> => {
     if (error.code === 4001 || error?.info?.error?.code === 4001) return null;
     
     // Fallback error message
-    alert("Connection failed. Please unlock your wallet and try again.");
     return null;
   }
 };
@@ -163,10 +161,15 @@ export const getIdentityStatus = async (address: string, chainId: number): Promi
         // 2. Fetch the actual Token Address from the Factory
         // Base Factory has 'nft()', Linea Factory has 'sbt()'
         let tokenAddress: string;
-        if (chainId === BASE_CHAIN_ID) {
-            tokenAddress = await factoryContract.nft();
-        } else {
-            tokenAddress = await factoryContract.sbt();
+        try {
+            if (chainId === BASE_CHAIN_ID) {
+                tokenAddress = await factoryContract.nft();
+            } else {
+                tokenAddress = await factoryContract.sbt();
+            }
+        } catch (contractErr) {
+            console.warn(`Failed to fetch token address from factory on chain ${chainId}`, contractErr);
+            return { hasIdentity: false, balance: 0 };
         }
 
         if (!tokenAddress || tokenAddress === '0x0000000000000000000000000000000000000000') {

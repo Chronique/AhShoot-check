@@ -9,26 +9,28 @@ declare global {
   }
 }
 
+// Helper to get the raw ethereum provider
+const getRawProvider = () => {
+    // Check Farcaster SDK Provider first
+    if (sdk.wallet.ethProvider && typeof sdk.wallet.ethProvider.request === 'function') {
+        return sdk.wallet.ethProvider;
+    }
+    // Check Window Ethereum
+    if (typeof window !== 'undefined' && window.ethereum) {
+        return window.ethereum;
+    }
+    return null;
+};
+
 // 1. Silent Check
 export const checkWalletConnection = async (): Promise<string | null> => {
-  try {
-      if (sdk.wallet.ethProvider && typeof sdk.wallet.ethProvider.request === 'function') {
-          try {
-              const provider = new BrowserProvider(sdk.wallet.ethProvider as any);
-              const accounts = await provider.listAccounts();
-              if (accounts.length > 0) return accounts[0].address;
-          } catch (e) { 
-              console.warn("SDK Provider silent check failed:", e); 
-          }
-      }
+  const rawProvider = getRawProvider();
+  if (!rawProvider) return null;
 
-      if (window.ethereum) {
-        const provider = new BrowserProvider(window.ethereum);
-        const accounts = await provider.listAccounts();
-        if (accounts.length > 0) {
-            return accounts[0].address;
-        }
-      }
+  try {
+      // Use raw request to avoid Ethers network detection issues
+      const accounts = await rawProvider.request({ method: 'eth_accounts' }) as string[];
+      if (accounts && accounts.length > 0) return accounts[0];
       return null;
   } catch (error) {
     console.error("Silent connection check failed:", error);
@@ -38,24 +40,27 @@ export const checkWalletConnection = async (): Promise<string | null> => {
 
 // 2. Manual Connect
 export const connectWallet = async (): Promise<string | null> => {
-  let provider: BrowserProvider;
+  const rawProvider = getRawProvider();
+  if (!rawProvider) {
+       alert("Wallet not found. Please use a crypto wallet.");
+       return null;
+  }
 
   try {
-      if (sdk.wallet.ethProvider && typeof sdk.wallet.ethProvider.request === 'function') {
-           provider = new BrowserProvider(sdk.wallet.ethProvider as any);
-      } else if (window.ethereum) {
-           provider = new BrowserProvider(window.ethereum);
-      } else {
-           alert("Wallet not found. Please use a crypto wallet.");
-           return null;
+      // Use raw request to trigger popup directly. 
+      // This avoids "could not coalesce error" from Ethers v6 when wallet is locked.
+      const accounts = await rawProvider.request({ method: 'eth_requestAccounts' }) as string[];
+      if (accounts && accounts.length > 0) {
+          return accounts[0];
       }
-
-      const signer = await provider.getSigner();
-      const address = await signer.getAddress();
-      return address;
+      return null;
   } catch (error: any) {
     console.error("Connection error:", error);
+    // User rejected request
     if (error.code === 4001 || error?.info?.error?.code === 4001) return null;
+    
+    // Fallback error message
+    alert("Connection failed. Please unlock your wallet and try again.");
     return null;
   }
 };
@@ -102,16 +107,13 @@ export const switchNetwork = async (provider: BrowserProvider, targetChainId: nu
 
 // 4. Mint Identity (Base or Linea)
 export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
-    try {
-        let provider: BrowserProvider;
-        if (sdk.wallet.ethProvider && typeof sdk.wallet.ethProvider.request === 'function') {
-            provider = new BrowserProvider(sdk.wallet.ethProvider as any);
-        } else if (window.ethereum) {
-            provider = new BrowserProvider(window.ethereum);
-        } else {
-            return false;
-        }
+    const rawProvider = getRawProvider();
+    if (!rawProvider) return false;
 
+    try {
+        // Create provider only when needed for interaction
+        const provider = new BrowserProvider(rawProvider as any);
+        
         // 1. Force Switch Network First
         await switchNetwork(provider, targetChainId);
 
@@ -133,6 +135,9 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
         
         if (e.code === 4001 || e?.info?.error?.code === 4001) return false;
         
+        // Check for common error strings
+        if (e.message && (e.message.includes("rejected") || e.message.includes("denied"))) return false;
+
         alert("Transaction failed. Make sure you are on the right network and have ETH for gas.");
         return false;
     }
@@ -146,46 +151,32 @@ export interface IdentityStatus {
 
 export const getIdentityStatus = async (address: string, chainId: number): Promise<IdentityStatus> => {
     try {
-        let provider: BrowserProvider;
-        // Use window.ethereum for read operations if available, fallback to nothing
-        if (window.ethereum) {
-             provider = new BrowserProvider(window.ethereum);
-        } else if (sdk.wallet.ethProvider) {
-             provider = new BrowserProvider(sdk.wallet.ethProvider as any);
-        } else {
+        const rawProvider = getRawProvider();
+        if (!rawProvider) {
              return { hasIdentity: false, balance: 0 };
         }
+        
+        // For read operations, we try to use the provider. 
+        // Note: This might throw if the wallet is on a different network and refuses to proxy the call.
+        const provider = new BrowserProvider(rawProvider as any);
         
         const contractAddress = chainId === LINEA_CHAIN_ID ? LINEA_CONTRACT_ADDRESS : BASE_CONTRACT_ADDRESS;
         
-        // Note: For read-only calls across different chains, we usually need a specific RPC provider.
-        // If the user's wallet is on Chain A, calling a contract on Chain B via BrowserProvider will fail.
-        // We will try, but if it fails due to network mismatch, we assume false for now unless we implement RPC URLs.
-        // For best UX in this dual-chain app, we assume the user might switch or we catch the error.
+        const contract = new Contract(contractAddress, CONTRACT_ABI, provider);
         
-        try {
-            const contract = new Contract(contractAddress, CONTRACT_ABI, provider);
-            // We don't force switch network for reading, we try reading. 
-            // If the provider is on a different network, this call might fail depending on the wallet/provider behavior.
-            // A more robust solution would be to use JsonRpcProvider with public endpoints.
-            
-            // However, sticking to the requested "wagmi+viem (existing stack)" style which uses the injected provider:
-            const balance = await contract.balanceOf(address);
-            return {
-                hasIdentity: Number(balance) > 0,
-                balance: Number(balance)
-            };
-        } catch (readError) {
-             // If read fails (likely wrong network), return default
-             return { hasIdentity: false, balance: 0 };
-        }
+        // Attempt read
+        const balance = await contract.balanceOf(address);
+        return {
+            hasIdentity: Number(balance) > 0,
+            balance: Number(balance)
+        };
     } catch (e) {
-        console.warn("Failed to fetch identity status:", e);
+        // Silent failure for read-only checks (expected if wrong network)
+        // console.warn("Failed to fetch identity status:", e);
         return { hasIdentity: false, balance: 0 };
     }
 }
 
 export const interactWithContract = async (): Promise<boolean> => {
-  // Default legacy interaction
   return mintIdentity(BASE_CHAIN_ID);
 };

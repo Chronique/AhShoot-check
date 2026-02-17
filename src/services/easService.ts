@@ -17,6 +17,7 @@ interface GraphQLResponse {
   errors?: any[];
 }
 
+// 1. Fetch attestations received by a specific USER (Profile view)
 export const fetchAttestations = async (address: string, chain: Chain): Promise<Attestation[]> => {
   if (!chain.graphqlUrl) return [];
 
@@ -43,10 +44,53 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
   `;
 
   try {
-    const response = await fetch(chain.graphqlUrl, {
+    return await executeQuery(chain, query, { address });
+  } catch (error) {
+    return [];
+  }
+};
+
+// 2. Fetch recent attestations for a specific SCHEMA (Leaderboard/Activity view)
+export const fetchRecentAttestations = async (schemaUid: string, chain: Chain): Promise<Attestation[]> => {
+  if (!chain.graphqlUrl) return [];
+
+  const query = `
+    query SchemaAttestations($schemaUid: StringString!) {
+      attestations(
+        where: {
+          schemaId: { equals: $schemaUid }
+          revoked: { equals: false }
+        }
+        orderBy: { time: desc }
+        take: 5
+      ) {
+        id
+        attester
+        recipient
+        time
+        decodedDataJson
+        schema {
+          id
+        }
+      }
+    }
+  `;
+
+  try {
+    // Note: EAS GraphQL expects Schema UID in exact format used in DB (usually lowercase or mixed)
+    return await executeQuery(chain, query, { schemaUid: schemaUid });
+  } catch (error) {
+    console.error("Failed to fetch recent activity:", error);
+    return [];
+  }
+}
+
+// Helper function to handle the fetch logic
+const executeQuery = async (chain: Chain, query: string, variables: any): Promise<Attestation[]> => {
+    const response = await fetch(chain.graphqlUrl!, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, variables: { address: address } }),
+      body: JSON.stringify({ query, variables }),
     });
 
     if (!response.ok) return [];
@@ -61,7 +105,6 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
             if (att.decodedDataJson) {
                 const parsed = JSON.parse(att.decodedDataJson);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                     // Try to find a meaningful value to display
                      const meaningful = parsed.find((p: any) => p.name.toLowerCase().includes('score') || p.name.toLowerCase().includes('id'));
                      if (meaningful) {
                         displayData = `${meaningful.name}: ${meaningful.value.value}`;
@@ -79,19 +122,13 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
             attester: att.attester,
             time: att.time,
             data: displayData,
-            schemaName: 'Unknown Schema', // Filled later in App.tsx if matched
-            provider: 'Unknown Provider', // Filled later in App.tsx if matched
+            schemaName: 'Unknown Schema', 
+            provider: 'Unknown Provider', 
             network: chain.name,
             networkColor: chain.color,
             networkLogo: chain.logoUrl 
         };
     });
-
-  } catch (error) {
-    // console.warn(`Failed to fetch from ${chain.name}:`, error);
-    // Return empty so Promise.all in App.tsx continues
-    return [];
-  }
-};
+}
 
 export const fetchSchemaDetails = async () => { return null; };

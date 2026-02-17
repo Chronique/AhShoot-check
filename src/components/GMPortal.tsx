@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { sayGM, getStreak } from '../services/walletService';
-import { fetchAttestations } from '../services/easService';
+import { fetchAttestations, fetchRecentAttestations } from '../services/easService';
 import { BASE_CHAIN, TARGET_SCHEMA_UID, POPULAR_SCHEMAS } from '../constants';
 import { FarcasterUser, Attestation } from '../types';
 import { AttestationCard } from './AttestationCard';
@@ -16,29 +16,38 @@ export const GMPortal: React.FC<GMPortalProps> = ({ connectedAddress, farcasterU
   const [streak, setStreak] = useState(0);
   const [isMining, setIsMining] = useState(false);
   const [userAttestation, setUserAttestation] = useState<Attestation | null>(null);
+  const [recentActivity, setRecentActivity] = useState<Attestation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 1. Check if user already has the Verified Schema
+  // 1. Initial Load
   useEffect(() => {
+    // Load Recent Activity (Real Data)
+    loadRecentActivity();
+
     if (connectedAddress) {
         checkVerificationStatus();
         getStreak(connectedAddress).then(s => setStreak(s));
     }
   }, [connectedAddress]);
 
+  const loadRecentActivity = async () => {
+      try {
+          const recents = await fetchRecentAttestations(TARGET_SCHEMA_UID, BASE_CHAIN);
+          setRecentActivity(recents);
+      } catch (e) {
+          console.error("Error loading recents:", e);
+      }
+  };
+
   const checkVerificationStatus = async () => {
     setIsLoading(true);
     try {
-        // Fetch attestations for the user on Base Chain
         const attestations = await fetchAttestations(connectedAddress, BASE_CHAIN);
-        
-        // Find if they have the specific GM/Verified User Schema
         const found = attestations.find(att => 
             att.schemaUid.toLowerCase() === TARGET_SCHEMA_UID.toLowerCase()
         );
 
         if (found) {
-            // Enrich with metadata for display
             const schemaDef = POPULAR_SCHEMAS.find(s => s.uid.toLowerCase() === TARGET_SCHEMA_UID.toLowerCase());
             setUserAttestation({
                 ...found,
@@ -63,20 +72,31 @@ export const GMPortal: React.FC<GMPortalProps> = ({ connectedAddress, farcasterU
     }
     setIsMining(true);
     
-    // Interact with contract (attest)
+    // Interact with contract
     const success = await sayGM();
     
     if (success) {
-        // If tx successful, immediately re-fetch to show the new badge
         setStreak(prev => prev + 1);
-        // Wait a small buffer for Indexer to catch up (optional, but recommended for GraphQL)
+        // Wait for Indexer
         setTimeout(() => {
             checkVerificationStatus();
+            loadRecentActivity(); // Refresh list after minting
             setIsMining(false);
         }, 4000); 
     } else {
         setIsMining(false);
     }
+  };
+
+  // Helper for time ago
+  const timeAgo = (timestamp: number) => {
+      const seconds = Math.floor((Date.now() / 1000) - timestamp);
+      if (seconds < 60) return `${seconds}s ago`;
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      return `${Math.floor(hours / 24)}d ago`;
   };
 
   return (
@@ -159,29 +179,46 @@ export const GMPortal: React.FC<GMPortalProps> = ({ connectedAddress, farcasterU
         </>
        )}
 
-       {/* Leaderboard / Streak Context */}
+       {/* REAL Leaderboard / Recent Activity */}
        <div className="mt-8 pt-6 border-t border-slate-800">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-slate-400 text-sm uppercase tracking-wide pl-1">Recent Activity</h3>
-                <div className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-400">
-                    Streak: <span className="text-white font-mono">{streak}</span>
-                </div>
+                <button onClick={loadRecentActivity} className="text-xs text-indigo-400 hover:text-white flex items-center gap-1">
+                    <span className="material-symbols-rounded text-sm">refresh</span> Refresh
+                </button>
             </div>
             
             <div className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-                {[1,2,3].map((i) => (
-                    <div key={i} className="flex items-center p-3 border-b border-slate-700/50 last:border-0 gap-3">
-                        <span className="font-mono text-slate-500 w-4">#{i}</span>
-                        <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300">
-                            0x
+                {recentActivity.length > 0 ? (
+                    recentActivity.map((att) => (
+                        <div key={att.uid} className="flex items-center p-3 border-b border-slate-700/50 last:border-0 gap-3 hover:bg-slate-800 transition-colors">
+                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300">
+                                <span className="material-symbols-rounded text-sm">person</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm text-white font-mono truncate">
+                                    {att.recipient.slice(0, 6)}...{att.recipient.slice(-4)}
+                                </p>
+                                <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                                    <span className="material-symbols-rounded text-[10px]">history</span>
+                                    {timeAgo(att.time)}
+                                </p>
+                            </div>
+                            <a 
+                                href={`https://base.easscan.org/attestation/view/${att.uid}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="material-symbols-rounded text-emerald-500 text-lg hover:text-emerald-400"
+                            >
+                                open_in_new
+                            </a>
                         </div>
-                        <div className="flex-1">
-                            <p className="text-sm text-white font-mono">0x...{Math.floor(Math.random()*9000)+1000}</p>
-                            <p className="text-[10px] text-slate-500">Verified 2m ago</p>
-                        </div>
-                        <span className="material-symbols-rounded text-emerald-500 text-lg">verified</span>
+                    ))
+                ) : (
+                    <div className="p-6 text-center text-slate-500 text-sm">
+                        No recent activity found for this schema.
                     </div>
-                ))}
+                )}
             </div>
        </div>
     </div>

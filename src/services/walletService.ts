@@ -123,8 +123,34 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
         const signer = await provider.getSigner();
         const contract = new Contract(contractAddress, FACTORY_ABI, signer);
         
+        // --- PRE-FLIGHT CHECK: Already Owns? ---
+        // This prevents the generic "execution reverted" error if the user already has the NFT.
+        try {
+            let tokenAddress = '';
+            if (targetChainId === BASE_CHAIN_ID) {
+                try { tokenAddress = await contract.nft(); } catch(e) {}
+            } else {
+                try { tokenAddress = await contract.sbt(); } catch(e) {}
+            }
+
+            if (tokenAddress && tokenAddress !== '0x0000000000000000000000000000000000000000') {
+                const tokenContract = new Contract(tokenAddress, ERC721_ABI, provider); // Use provider for read-only speed
+                const userAddress = await signer.getAddress();
+                const balance = await tokenContract.balanceOf(userAddress);
+                
+                if (balance > 0n) {
+                    alert("Verification: You already hold this Identity! No need to mint again.");
+                    return true; // Treat as success so UI updates
+                }
+            }
+        } catch (preCheckErr) {
+            console.warn("Pre-mint check failed (proceeding to mint anyway):", preCheckErr);
+        }
+
         // 3. Send Transaction
-        const tx = await contract.mint();
+        // We set a manual gasLimit to avoid 'estimateGas' failures (CALL_EXCEPTION) 
+        // blocking the popup if the RPC simulation fails.
+        const tx = await contract.mint({ gasLimit: 500000 });
         
         console.log(`[${targetChainId}] Identity Mint Tx Sent:`, tx.hash);
         await tx.wait();
@@ -135,20 +161,19 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
         
         if (e.code === 4001 || e?.info?.error?.code === 4001) return false;
         
-        // SPECIFIC ERROR HANDLING: Execution Reverted
-        // This usually means the user already owns the identity or logic failed.
+        // Explain that it's likely NOT a gas (funds) issue, but a Logic issue
         if (
             e.message?.includes("execution reverted") || 
             e.info?.error?.message?.includes("execution reverted") ||
             e.code === "CALL_EXCEPTION"
         ) {
-            alert("Mint Failed: You likely already own this Identity (Limit 1 per wallet). Updating status...");
+            alert("Transaction Failed: The contract rejected the transaction.\n\nThis is usually NOT because of low ETH balance (Gas), but because:\n1. The contract is paused/deprecated.\n2. Or you are not eligible.");
             return false;
         }
 
         if (e.message && (e.message.includes("rejected") || e.message.includes("denied"))) return false;
 
-        alert("Transaction failed. Make sure you are on the right network and have ETH for gas.");
+        alert("Transaction failed. Please check your internet connection or try again.");
         return false;
     }
 }

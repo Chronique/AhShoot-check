@@ -58,3 +58,10 @@ export interface ChatMessage {
   content: string;
   timestamp: number;
 }
+
+export interface FarcasterUser {
+  fid: number;
+  username?: string;
+  displayName?: string;
+  pfpUrl?: string;
+}

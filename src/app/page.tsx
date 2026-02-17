@@ -5,7 +5,7 @@ import { TerminalAgent } from '../components/TerminalAgent';
 import { Navbar } from '../components/Navbar';
 import { BottomNav, Tab } from '../components/BottomNav';
 import { CHAINS, BASE_CHAIN, POPULAR_SCHEMAS } from '../constants';
-import { Attestation, Chain } from '../types';
+import { Attestation, Chain, FarcasterUser } from '../types';
 import { fetchAttestations } from '../services/easService';
 import { connectWallet, interactWithContract, checkWalletConnection } from '../services/walletService';
 import { resolveEnsName } from '../services/ensService';
@@ -19,6 +19,7 @@ const Page: React.FC = () => {
   // Wallet & User State
   const [connectedAddress, setConnectedAddress] = useState<string>(''); 
   const [targetAddress, setTargetAddress] = useState<string>(''); 
+  const [farcasterUser, setFarcasterUser] = useState<FarcasterUser | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
   
   // Input State
@@ -43,6 +44,16 @@ const Page: React.FC = () => {
         const context = await sdk.context;
         if (context) {
             isFarcaster = true;
+            // Get Farcaster User Profile if available
+            if (context.user) {
+                setFarcasterUser({
+                    fid: context.user.fid,
+                    username: context.user.username,
+                    displayName: context.user.displayName,
+                    pfpUrl: context.user.pfpUrl
+                });
+            }
+
             // Signal to Farcaster that the app is ready (hides splash screen)
             sdk.actions.ready();
             
@@ -217,10 +228,18 @@ const Page: React.FC = () => {
       <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 pb-24">
           <div className="mb-6 p-4 bg-gradient-to-br from-indigo-900/50 to-purple-900/50 rounded-2xl border border-indigo-500/20 relative overflow-hidden">
               <div className="relative z-10">
-                  <h2 className="text-2xl font-bold text-white mb-2">My Reputation</h2>
+                  <h2 className="text-2xl font-bold text-white mb-2">
+                      {farcasterUser ? `Hello, @${farcasterUser.username || 'User'}!` : 'My Reputation'}
+                  </h2>
+                  
                   {connectedAddress ? (
                       <div>
-                          <p className="text-slate-300 text-sm mb-4">You are connected as <span className="font-mono text-indigo-300">{connectedAddress.slice(0,6)}...</span></p>
+                          <p className="text-slate-300 text-sm mb-4">
+                             {farcasterUser 
+                                ? "Check your Farcaster connected wallet score."
+                                : <>You are connected as <span className="font-mono text-indigo-300">{connectedAddress.slice(0,6)}...</span></>
+                             }
+                          </p>
                           <button 
                             onClick={() => { setTargetAddress(connectedAddress); setActiveTab('verify'); checkForAttestation(connectedAddress); }}
                             className="bg-white text-indigo-900 px-4 py-2 rounded-lg font-bold text-sm shadow-md active:scale-95 transition-transform"
@@ -364,6 +383,7 @@ const Page: React.FC = () => {
       
       <Navbar 
         connectedAddress={connectedAddress} 
+        farcasterUser={farcasterUser}
         onConnect={handleManualConnect} 
         isConnecting={isConnecting}
       />

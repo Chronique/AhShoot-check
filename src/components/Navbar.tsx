@@ -1,13 +1,15 @@
 
 import React from 'react';
+import { FarcasterUser } from '../types';
 
 interface NavbarProps {
   connectedAddress: string;
+  farcasterUser: FarcasterUser | null;
   onConnect: () => void;
   isConnecting: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ connectedAddress, onConnect, isConnecting }) => {
+export const Navbar: React.FC<NavbarProps> = ({ connectedAddress, farcasterUser, onConnect, isConnecting }) => {
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-slate-800 bg-[#0f172a]/95 backdrop-blur-md pt-[env(safe-area-inset-top)]">
       <div className="px-4 h-14 flex items-center justify-between">
@@ -19,9 +21,22 @@ export const Navbar: React.FC<NavbarProps> = ({ connectedAddress, onConnect, isC
            <span className="text-lg font-bold text-white tracking-tight">AH SHOOT</span>
         </div>
 
-        {/* Wallet Pill */}
+        {/* User Identity Pill */}
         <div>
-            {!connectedAddress ? (
+            {farcasterUser ? (
+                 // Farcaster User Display
+                 <div className="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 shadow-sm">
+                    {farcasterUser.pfpUrl ? (
+                        <img src={farcasterUser.pfpUrl} alt={farcasterUser.username} className="w-5 h-5 rounded-full border border-slate-600" />
+                    ) : (
+                        <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center text-[10px] font-bold text-white">
+                            {(farcasterUser.username || 'F').charAt(0).toUpperCase()}
+                        </div>
+                    )}
+                    <span className="text-xs font-bold text-white">@{farcasterUser.username || farcasterUser.fid}</span>
+                 </div>
+            ) : !connectedAddress ? (
+                // Connect Button (Web Mode)
                 <button 
                 onClick={onConnect}
                 disabled={isConnecting}
@@ -35,6 +50,7 @@ export const Navbar: React.FC<NavbarProps> = ({ connectedAddress, onConnect, isC
                     Connect
                 </button>
             ) : (
+                // Wallet Address Display (Web Mode)
                 <div 
                     onClick={onConnect}
                     className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-full border border-slate-700 cursor-pointer transition-colors"

@@ -5,7 +5,7 @@ import { Chain, SchemaDefinition } from './types';
 
 // BASE (Identity Factory - NFT)
 export const BASE_CHAIN_ID = 8453;
-export const BASE_CONTRACT_ADDRESS = '0x80c63A0cd413F812Fe10e9983BB388bfCbDe8F17'; 
+export const BASE_CONTRACT_ADDRESS = '0xA32ab3E155A9B8b13FbbD5D3F7339702c899fE39'; 
 export const BASE_SCHEMA_UID = '0xa043c275aa1f5b501fbc3078a496624cb2c96a0de07dc77861e7f57d2a90c6e5';
 
 // LINEA (Identity Factory - SBT)

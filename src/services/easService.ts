@@ -54,8 +54,9 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
 export const fetchRecentAttestations = async (schemaUid: string, chain: Chain): Promise<Attestation[]> => {
   if (!chain.graphqlUrl) return [];
 
+  // FIXED: Typo 'StringString!' changed to 'String!'
   const query = `
-    query SchemaAttestations($schemaUid: StringString!) {
+    query SchemaAttestations($schemaUid: String!) {
       attestations(
         where: {
           schemaId: { equals: $schemaUid }
@@ -77,7 +78,6 @@ export const fetchRecentAttestations = async (schemaUid: string, chain: Chain): 
   `;
 
   try {
-    // Note: EAS GraphQL expects Schema UID in exact format used in DB (usually lowercase or mixed)
     return await executeQuery(chain, query, { schemaUid: schemaUid });
   } catch (error) {
     console.error("Failed to fetch recent activity:", error);

@@ -143,22 +143,22 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
             console.warn("Pre-mint balance check skipped:", preCheckErr);
         }
 
-        // --- PRE-FLIGHT 2: SIMULATE TRANSACTION (STATIC CALL) ---
-        // We try to simulate. If it fails, we warn the user but ALLOW them to proceed (Force Mint).
+        // --- PRE-FLIGHT 2: STRICT SIMULATION ---
+        // We will NOT allow the user to proceed if this fails. 
+        // This prevents the scary "Simulation Failed" screen in Rabby/Metamask.
         try {
             await contract.mint.staticCall(); 
         } catch (simError: any) {
-            console.warn("Simulation Failed:", simError);
+            console.warn("Simulation Failed (Strict Abort):", simError);
             
-            const confirmMsg = "⚠️ Contract Simulation Failed\n\nThe contract rejected the test transaction. This usually means:\n1. You are not eligible.\n2. The contract is paused.\n3. You already own the NFT.\n\nIt is NOT a gas issue.\n\nDo you want to force the transaction anyway? (Gas might be wasted)";
-            const proceed = window.confirm(confirmMsg);
-            
-            if (!proceed) return false;
+            // Show a friendly alert instead of crashing the wallet
+            alert("⚠️ Minting Unavailable\n\nThe contract is currently rejecting transactions (Revert #1002).\n\nThis means:\n- The demo event might have ended.\n- Or this wallet address is not eligible.\n\nProcess aborted to save your gas fees.");
+            return false; // ABORT TRANSACTION
         }
 
         // 3. Send Actual Transaction
-        // We set a high manual gasLimit (500,000) to bypass wallet estimation errors if the user chose to force it.
-        const tx = await contract.mint({ gasLimit: 500000 });
+        // Only reached if staticCall succeeded
+        const tx = await contract.mint();
         
         console.log(`[${targetChainId}] Identity Mint Tx Sent:`, tx.hash);
         await tx.wait();
@@ -169,17 +169,7 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
         
         if (e.code === 4001 || e?.info?.error?.code === 4001) return false; // User rejected
         
-        // Fallback error message if actual TX fails
-        if (
-            e.message?.includes("execution reverted") || 
-            e.info?.error?.message?.includes("execution reverted") ||
-            e.code === "CALL_EXCEPTION"
-        ) {
-            alert("❌ Mint Failed\n\nThe contract blocked the transaction. This confirms it is a contract logic issue, not a gas issue.");
-            return false;
-        }
-
-        alert("Transaction failed. Please check your internet connection.");
+        alert("Transaction failed or was rejected.");
         return false;
     }
 }

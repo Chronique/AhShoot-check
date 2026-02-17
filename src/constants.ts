@@ -67,6 +67,42 @@ export const CHAINS: Chain[] = [
     graphqlUrl: 'https://optimism.easscan.org/graphql',
     vmType: 'EVM',
     group: 'Optimism Rollups'
+  },
+  { 
+    id: 42161, 
+    name: 'Arbitrum One', 
+    color: 'blue-400', 
+    logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/arbitrum/info/logo.png',
+    graphqlUrl: 'https://arbitrum.easscan.org/graphql',
+    vmType: 'EVM',
+    group: 'Arbitrum'
+  },
+  { 
+    id: 137, 
+    name: 'Polygon', 
+    color: 'purple-500', 
+    logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/polygon/info/logo.png',
+    graphqlUrl: 'https://polygon.easscan.org/graphql',
+    vmType: 'EVM',
+    group: 'Sidechains'
+  },
+  { 
+    id: 534352, 
+    name: 'Scroll', 
+    color: 'orange-100', 
+    logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/scroll/info/logo.png',
+    graphqlUrl: 'https://scroll.easscan.org/graphql',
+    vmType: 'EVM',
+    group: 'ZK Rollups'
+  },
+  { 
+    id: 11155111, 
+    name: 'Sepolia', 
+    color: 'slate-400', 
+    logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
+    graphqlUrl: 'https://sepolia.easscan.org/graphql',
+    vmType: 'EVM',
+    group: 'Testnets'
   }
 ];
 

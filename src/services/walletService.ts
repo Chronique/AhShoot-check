@@ -131,11 +131,17 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
         }
 
         // --- ACTION: SEND TRANSACTION DIRECTLY ---
-        // Removed strict staticCall simulation.
-        // If the contract reverts, the wallet (MetaMask/Rabby) will show the error.
         
         try {
-            const tx = await contract.mint();
+            let tx;
+            if (targetChainId === BASE_CHAIN_ID) {
+                // Use correct function name for Base Identity Factory
+                tx = await contract.mintIdentity();
+            } else {
+                // Legacy/Linea call
+                tx = await contract.mint();
+            }
+            
             console.log(`[${targetChainId}] Identity Mint Tx Sent:`, tx.hash);
             await tx.wait();
             return true;
@@ -147,7 +153,7 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
                 return false;
             }
 
-            // Handle Contract Revert (e.g. Not Eligible)
+            // Handle Contract Revert
             if (txError.code === 'CALL_EXCEPTION' || txError.code === 'UNPREDICTABLE_GAS_LIMIT') {
                 alert("⚠️ Transaction Error\n\nThe contract rejected the transaction.\n\nPossible reasons:\n1. You are not eligible for this mint.\n2. The event has ended.\n3. You already own this identity.");
             } else {

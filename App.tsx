@@ -34,23 +34,8 @@ const App: React.FC = () => {
 
   // --- LOGIC ---
 
-  // 1. Initialize Base MiniKit & Auto-Connect
+  // 1. Auto-Connect Wallet
   useEffect(() => {
-    // Dynamic Import for MiniKit to prevent app crash if module fails
-    const initMiniKit = async () => {
-        try {
-            // @ts-ignore
-            const { MiniKit } = await import('@coinbase/minikit-sdk');
-            if (MiniKit) {
-                MiniKit.install();
-                console.log("Base MiniKit installed successfully.");
-            }
-        } catch (e) {
-            console.warn("MiniKit not loaded (Standard Browser Mode)");
-        }
-    };
-    initMiniKit();
-
     // Auto Connect Wallet
     const attemptAutoConnect = async () => {
         const address = await checkWalletConnection();

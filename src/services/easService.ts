@@ -22,10 +22,45 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
   if (!chain.graphqlUrl) return [];
 
   const query = `
-    query Attestations($address: String!) {
+    query UserAttestations($address: String!) {
       attestations(
         where: {
           recipient: { equals: $address }
+          revoked: { equals: false }
+        }
+        orderBy: { time: desc }
+        take: 20
+      ) {
+        id
+        attester
+        recipient
+        time
+        decodedDataJson
+        schema {
+          id
+        }
+      }
+    }
+  `;
+
+  try {
+    return await executeQuery(chain, query, { address });
+  } catch (error) {
+    console.warn(`Fetch error on ${chain.name}:`, error);
+    return [];
+  }
+};
+
+// 2. Fetch recent attestations for a specific SCHEMA (Leaderboard/Activity view)
+export const fetchRecentAttestations = async (schemaUid: string, chain: Chain): Promise<Attestation[]> => {
+  if (!chain.graphqlUrl) return [];
+
+  // FIXED: Using String! matches EAS Scan schema better than Bytes!
+  const query = `
+    query SchemaAttestations($schemaUid: String!) {
+      attestations(
+        where: {
+          schemaId: { equals: $schemaUid }
           revoked: { equals: false }
         }
         orderBy: { time: desc }
@@ -44,48 +79,14 @@ export const fetchAttestations = async (address: string, chain: Chain): Promise<
   `;
 
   try {
-    return await executeQuery(chain, query, { address });
-  } catch (error) {
-    return [];
-  }
-};
-
-// 2. Fetch recent attestations for a specific SCHEMA (Leaderboard/Activity view)
-export const fetchRecentAttestations = async (schemaUid: string, chain: Chain): Promise<Attestation[]> => {
-  if (!chain.graphqlUrl) return [];
-
-  // FIXED: Typo 'StringString!' changed to 'String!'
-  const query = `
-    query SchemaAttestations($schemaUid: String!) {
-      attestations(
-        where: {
-          schemaId: { equals: $schemaUid }
-          revoked: { equals: false }
-        }
-        orderBy: { time: desc }
-        take: 5
-      ) {
-        id
-        attester
-        recipient
-        time
-        decodedDataJson
-        schema {
-          id
-        }
-      }
-    }
-  `;
-
-  try {
     return await executeQuery(chain, query, { schemaUid: schemaUid });
   } catch (error) {
-    console.error("Failed to fetch recent activity:", error);
+    console.error(`Recent fetch error on ${chain.name}:`, error);
     return [];
   }
 }
 
-// Helper function to handle the fetch logic
+// Helper function to handle the fetch logic and PARSE DATA nicely
 const executeQuery = async (chain: Chain, query: string, variables: any): Promise<Attestation[]> => {
     const response = await fetch(chain.graphqlUrl!, {
       method: 'POST',
@@ -93,7 +94,11 @@ const executeQuery = async (chain: Chain, query: string, variables: any): Promis
       body: JSON.stringify({ query, variables }),
     });
 
-    if (!response.ok) return [];
+    if (!response.ok) {
+        // Log status to help debug if needed, but return empty to not break UI
+        // console.warn(`GraphQL Error ${response.status} on ${chain.name}`);
+        return [];
+    }
 
     const json: GraphQLResponse = await response.json();
     if (!json.data || !json.data.attestations) return [];
@@ -101,19 +106,31 @@ const executeQuery = async (chain: Chain, query: string, variables: any): Promis
     return json.data.attestations.map((att: any) => {
         let displayData = "Verified On-Chain";
         
+        // Parsing Logic: Extract meaningful data from the JSON string
         try {
             if (att.decodedDataJson) {
                 const parsed = JSON.parse(att.decodedDataJson);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                     const meaningful = parsed.find((p: any) => p.name.toLowerCase().includes('score') || p.name.toLowerCase().includes('id'));
+                     // Prioritize showing 'score', 'id', 'rank', or 'level'
+                     const meaningful = parsed.find((p: any) => {
+                        const name = p.name.toLowerCase();
+                        return name.includes('score') || name.includes('id') || name.includes('rank') || name.includes('tier');
+                     });
+
                      if (meaningful) {
-                        displayData = `${meaningful.name}: ${meaningful.value.value}`;
+                        // Clean up values
+                        let val = meaningful.value.value;
+                        if (typeof val === 'object' && val.hex) val = parseInt(val.hex, 16); // Handle BigInt hex
+                        displayData = `${meaningful.name}: ${val}`;
                      } else {
-                        displayData = parsed.map((p: any) => `${p.name}`).join(', ');
+                        // Fallback: just show the names of the fields
+                        displayData = parsed.map((p: any) => p.name).slice(0, 2).join(', ');
                      }
                 }
             }
-        } catch (e) {}
+        } catch (e) {
+            // displayData remains "Verified On-Chain" if parsing fails
+        }
 
         return {
             uid: att.id,

@@ -4,9 +4,11 @@ import { Chain, SchemaDefinition } from './types';
 // --- CORE INTERACTION CONSTANTS ---
 
 // BASE (Identity Factory - NFT)
+// NOTE: Reverted to 0x80c... because 0xA32... is the Registry and cannot be minted from.
 export const BASE_CHAIN_ID = 8453;
-export const BASE_CONTRACT_ADDRESS = '0xA32ab3E155A9B8b13FbbD5D3F7339702c899fE39'; 
+export const BASE_CONTRACT_ADDRESS = '0x80c63A0cd413F812Fe10e9983BB388bfCbDe8F17'; 
 export const BASE_SCHEMA_UID = '0xa043c275aa1f5b501fbc3078a496624cb2c96a0de07dc77861e7f57d2a90c6e5';
+export const BASE_REGISTRY_ADDRESS = '0xA32ab3E155A9B8b13FbbD5D3F7339702c899fE39'; // The new address you provided (EAS Registry)
 
 // LINEA (Identity Factory - SBT)
 export const LINEA_CHAIN_ID = 59144;

@@ -11,16 +11,12 @@ declare global {
 
 // Helper to get the raw ethereum provider
 const getRawProvider = () => {
-    // 1. Prioritize Window Ethereum (Standard Wallets / Desktop)
     if (typeof window !== 'undefined' && window.ethereum) {
         return window.ethereum;
     }
-
-    // 2. Fallback to Farcaster SDK Provider (Frame Context)
     if (typeof sdk !== 'undefined' && sdk.wallet?.ethProvider) {
         return sdk.wallet.ethProvider;
     }
-    
     return null;
 };
 
@@ -55,12 +51,6 @@ export const connectWallet = async (): Promise<string | null> => {
   } catch (error: any) {
     console.error("Connection error:", error);
     if (error.code === 4001) return null;
-    
-    if (error?.toString().includes("RpcResponse") || error?.name === "InternalErrorError") {
-        alert("Wallet not detected. Please install MetaMask or Rabby.");
-        return null;
-    }
-    alert("Connection failed. Please try again.");
     return null;
   }
 };
@@ -76,7 +66,6 @@ export const switchNetwork = async (provider: BrowserProvider, targetChainId: nu
         try {
             await provider.send('wallet_switchEthereumChain', [{ chainId: chainIdHex }]);
         } catch (switchError: any) {
-            // Error 4902: Chain not added
             if (switchError.code === 4902 || switchError?.error?.code === 4902) {
                 const chainParams = targetChainId === LINEA_CHAIN_ID 
                     ? {
@@ -113,14 +102,12 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
         const provider = new BrowserProvider(rawProvider as any);
         const signer = await provider.getSigner();
         
-        // 1. Force Switch Network
         await switchNetwork(provider, targetChainId);
 
-        // 2. Setup Contract
         const contractAddress = targetChainId === LINEA_CHAIN_ID ? LINEA_CONTRACT_ADDRESS : BASE_CONTRACT_ADDRESS;
         const contract = new Contract(contractAddress, FACTORY_ABI, signer);
         
-        // --- PRE-FLIGHT 1: CHECK BALANCE ---
+        // --- PRE-FLIGHT: CHECK BALANCE (Optional, does not block) ---
         try {
             let tokenAddress = '';
             if (targetChainId === BASE_CHAIN_ID) {
@@ -135,41 +122,42 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
                 const balance = await tokenContract.balanceOf(userAddress);
                 
                 if (balance > 0n) {
-                    alert("✅ You already own this Identity! Updating status...");
+                    alert("✅ You already own this Identity! Refreshing status...");
                     return true;
                 }
             }
         } catch (preCheckErr) {
-            console.warn("Pre-mint balance check skipped:", preCheckErr);
+            console.warn("Pre-mint check skipped");
         }
 
-        // --- PRE-FLIGHT 2: STRICT SIMULATION ---
-        // We will NOT allow the user to proceed if this fails. 
-        // This prevents the scary "Simulation Failed" screen in Rabby/Metamask.
-        try {
-            await contract.mint.staticCall(); 
-        } catch (simError: any) {
-            console.warn("Simulation Failed (Strict Abort):", simError);
-            
-            // Show a friendly alert instead of crashing the wallet
-            alert("⚠️ Minting Unavailable\n\nThe contract is currently rejecting transactions (Revert #1002).\n\nThis means:\n- The demo event might have ended.\n- Or this wallet address is not eligible.\n\nProcess aborted to save your gas fees.");
-            return false; // ABORT TRANSACTION
-        }
-
-        // 3. Send Actual Transaction
-        // Only reached if staticCall succeeded
-        const tx = await contract.mint();
+        // --- ACTION: SEND TRANSACTION DIRECTLY ---
+        // Removed strict staticCall simulation.
+        // If the contract reverts, the wallet (MetaMask/Rabby) will show the error.
         
-        console.log(`[${targetChainId}] Identity Mint Tx Sent:`, tx.hash);
-        await tx.wait();
-        return true;
+        try {
+            const tx = await contract.mint();
+            console.log(`[${targetChainId}] Identity Mint Tx Sent:`, tx.hash);
+            await tx.wait();
+            return true;
+        } catch (txError: any) {
+            console.warn("Mint Transaction Failed/Rejected:", txError);
+            
+            // Handle User Rejection
+            if (txError.code === 4001 || txError?.info?.error?.code === 4001) {
+                return false;
+            }
+
+            // Handle Contract Revert (e.g. Not Eligible)
+            if (txError.code === 'CALL_EXCEPTION' || txError.code === 'UNPREDICTABLE_GAS_LIMIT') {
+                alert("⚠️ Transaction Error\n\nThe contract rejected the transaction.\n\nPossible reasons:\n1. You are not eligible for this mint.\n2. The event has ended.\n3. You already own this identity.");
+            } else {
+                alert("Transaction failed. Please check your wallet for details.");
+            }
+            return false;
+        }
 
     } catch (e: any) {
-        console.error("Identity Mint Transaction Error:", e);
-        
-        if (e.code === 4001 || e?.info?.error?.code === 4001) return false; // User rejected
-        
-        alert("Transaction failed or was rejected.");
+        console.error("Identity Mint System Error:", e);
         return false;
     }
 }

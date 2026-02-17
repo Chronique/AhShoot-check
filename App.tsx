@@ -34,6 +34,36 @@ const App: React.FC = () => {
 
   // --- LOGIC ---
 
+  // 1. Initialize Base MiniKit & Auto-Connect
+  useEffect(() => {
+    // Dynamic Import for MiniKit to prevent app crash if module fails
+    const initMiniKit = async () => {
+        try {
+            // @ts-ignore
+            const { MiniKit } = await import('@coinbase/minikit-sdk');
+            if (MiniKit) {
+                MiniKit.install();
+                console.log("Base MiniKit installed successfully.");
+            }
+        } catch (e) {
+            console.warn("MiniKit not loaded (Standard Browser Mode)");
+        }
+    };
+    initMiniKit();
+
+    // Auto Connect Wallet
+    const attemptAutoConnect = async () => {
+        const address = await checkWalletConnection();
+        if (address) {
+            setConnectedAddress(address);
+            setTargetAddress(address);
+            if (view !== 'LEARN') setView('DASHBOARD');
+        }
+        setIsConnecting(false);
+    };
+    attemptAutoConnect();
+  }, []);
+
   // Improved Poll for attestation: Checks ALL chains relevant to the selection
   const checkForAttestation = async (address: string) => {
     if (!address) return;
@@ -119,20 +149,6 @@ const App: React.FC = () => {
         setIsLoadingData(false);
     }
   };
-
-  // 1. Auto-Connect on Mount
-  useEffect(() => {
-    const attemptAutoConnect = async () => {
-        const address = await checkWalletConnection();
-        if (address) {
-            setConnectedAddress(address);
-            setTargetAddress(address);
-            if (view !== 'LEARN') setView('DASHBOARD');
-        }
-        setIsConnecting(false);
-    };
-    attemptAutoConnect();
-  }, []);
 
   // 2. Refresh data when targetAddress changes AND we are in dashboard
   useEffect(() => {

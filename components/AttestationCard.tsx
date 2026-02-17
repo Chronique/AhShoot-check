@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Attestation } from '../types';
+import { Attestation } from '../src/types';
 
 interface AttestationCardProps {
   attestation: Attestation;

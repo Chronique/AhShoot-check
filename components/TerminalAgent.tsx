@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { POPULAR_SCHEMAS } from '../constants';
+import { POPULAR_SCHEMAS } from '../src/constants';
 import ReactMarkdown from 'react-markdown';
-import { ChatMessage } from '../types';
+import { ChatMessage } from '../src/types';
 
 export const TerminalAgent: React.FC = () => {
   const [input, setInput] = useState('');

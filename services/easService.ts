@@ -1,5 +1,5 @@
 
-import { Attestation, Chain } from '../types';
+import { Attestation, Chain } from '../src/types';
 
 interface GraphQLResponse {
   data: {

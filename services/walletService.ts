@@ -1,6 +1,6 @@
 
 import { BrowserProvider, Contract, parseEther } from 'ethers';
-import { BASE_CHAIN_ID, TARGET_CONTRACT_ADDRESS, CONTRACT_ABI } from '../constants';
+import { BASE_CHAIN_ID, TARGET_CONTRACT_ADDRESS, CONTRACT_ABI } from '../src/constants';
 
 declare global {
   interface Window {

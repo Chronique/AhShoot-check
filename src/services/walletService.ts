@@ -54,15 +54,13 @@ export const connectWallet = async (): Promise<string | null> => {
       return null;
   } catch (error: any) {
     console.error("Connection error:", error);
+    if (error.code === 4001) return null;
     
-    if (error.code === 4001 || error?.info?.error?.code === 4001) return null;
-    
-    if (error?.toString().includes("RpcResponse") || error?.name === "InternalErrorError" || error?.message?.includes("reading 'error'")) {
-        alert("Wallet not detected. Please install MetaMask, Rabby, or open in Coinbase Wallet.");
+    if (error?.toString().includes("RpcResponse") || error?.name === "InternalErrorError") {
+        alert("Wallet not detected. Please install MetaMask or Rabby.");
         return null;
     }
-
-    alert("Connection failed. Please unlock your wallet and try again.");
+    alert("Connection failed. Please try again.");
     return null;
   }
 };
@@ -78,31 +76,30 @@ export const switchNetwork = async (provider: BrowserProvider, targetChainId: nu
         try {
             await provider.send('wallet_switchEthereumChain', [{ chainId: chainIdHex }]);
         } catch (switchError: any) {
+            // Error 4902: Chain not added
             if (switchError.code === 4902 || switchError?.error?.code === 4902) {
-                if (targetChainId === LINEA_CHAIN_ID) {
-                    await provider.send('wallet_addEthereumChain', [{
+                const chainParams = targetChainId === LINEA_CHAIN_ID 
+                    ? {
                         chainId: chainIdHex,
                         chainName: 'Linea Mainnet',
                         nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
                         rpcUrls: ['https://rpc.linea.build'],
                         blockExplorerUrls: ['https://lineascan.build']
-                    }]);
-                } else if (targetChainId === BASE_CHAIN_ID) {
-                    await provider.send('wallet_addEthereumChain', [{
+                    }
+                    : {
                         chainId: chainIdHex,
                         chainName: 'Base',
                         nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
                         rpcUrls: ['https://mainnet.base.org'],
                         blockExplorerUrls: ['https://basescan.org']
-                    }]);
-                }
+                    };
+                await provider.send('wallet_addEthereumChain', [chainParams]);
             } else {
-                console.warn("Network switch request failed:", switchError);
                 throw switchError;
             }
         }
     } catch (e) {
-        console.warn("Network check failed:", e);
+        console.warn("Network switch failed:", e);
         throw e;
     }
 }
@@ -114,17 +111,17 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
 
     try {
         const provider = new BrowserProvider(rawProvider as any);
+        const signer = await provider.getSigner(); // Get signer BEFORE network switch ensures provider is ready
         
-        // 1. Force Switch Network First
+        // 1. Force Switch Network
         await switchNetwork(provider, targetChainId);
 
-        // 2. Select Contract
+        // 2. Setup Contract
         const contractAddress = targetChainId === LINEA_CHAIN_ID ? LINEA_CONTRACT_ADDRESS : BASE_CONTRACT_ADDRESS;
-        const signer = await provider.getSigner();
         const contract = new Contract(contractAddress, FACTORY_ABI, signer);
         
-        // --- PRE-FLIGHT CHECK: Already Owns? ---
-        // This prevents the generic "execution reverted" error if the user already has the NFT.
+        // --- PRE-FLIGHT 1: CHECK BALANCE ---
+        // Prevents minting if already owned (saves gas and error confusion)
         try {
             let tokenAddress = '';
             if (targetChainId === BASE_CHAIN_ID) {
@@ -134,51 +131,66 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
             }
 
             if (tokenAddress && tokenAddress !== '0x0000000000000000000000000000000000000000') {
-                const tokenContract = new Contract(tokenAddress, ERC721_ABI, provider); // Use provider for read-only speed
+                const tokenContract = new Contract(tokenAddress, ERC721_ABI, provider);
                 const userAddress = await signer.getAddress();
                 const balance = await tokenContract.balanceOf(userAddress);
                 
                 if (balance > 0n) {
-                    alert("Verification: You already hold this Identity! No need to mint again.");
-                    return true; // Treat as success so UI updates
+                    alert("✅ Verification: You already own this Identity! Updating status...");
+                    return true;
                 }
             }
         } catch (preCheckErr) {
-            console.warn("Pre-mint check failed (proceeding to mint anyway):", preCheckErr);
+            console.warn("Pre-mint balance check skipped:", preCheckErr);
         }
 
-        // 3. Send Transaction
-        // We set a manual gasLimit to avoid 'estimateGas' failures (CALL_EXCEPTION) 
-        // blocking the popup if the RPC simulation fails.
-        const tx = await contract.mint({ gasLimit: 500000 });
+        // --- PRE-FLIGHT 2: SIMULATE TRANSACTION (STATIC CALL) ---
+        // This checks if the contract WILL revert before we even open the wallet popup.
+        // This avoids the "Simulation Failed" red screen in Rabby/Metamask.
+        try {
+            // staticCall runs the function on the node without sending a tx
+            await contract.mint.staticCall(); 
+        } catch (simError: any) {
+            console.error("Simulation Failed:", simError);
+            
+            // Handle specific revert #1002 or others
+            const errString = simError.toString();
+            if (errString.includes("#1002") || errString.includes("reverted")) {
+                alert(`⚠️ Mint Unavailable\n\nThe contract rejected the request (Error #1002).\nPossible reasons:\n- Global supply limit reached.\n- Contract is paused.\n- You are not on the allowlist.\n\n(This is NOT a gas issue).`);
+                return false;
+            }
+            // Allow unknown simulation errors to proceed to actual TX attempt just in case
+        }
+
+        // 3. Send Actual Transaction
+        // We use a safe gas limit to prevent estimateGas from blocking UI if simulation was edge-case
+        const tx = await contract.mint({ gasLimit: 300000 });
         
         console.log(`[${targetChainId}] Identity Mint Tx Sent:`, tx.hash);
         await tx.wait();
         return true;
 
     } catch (e: any) {
-        console.error("Identity Mint Failed:", e);
+        console.error("Identity Mint Transaction Error:", e);
         
-        if (e.code === 4001 || e?.info?.error?.code === 4001) return false;
+        if (e.code === 4001 || e?.info?.error?.code === 4001) return false; // User rejected
         
-        // Explain that it's likely NOT a gas (funds) issue, but a Logic issue
+        // Final fallback error message
         if (
             e.message?.includes("execution reverted") || 
             e.info?.error?.message?.includes("execution reverted") ||
             e.code === "CALL_EXCEPTION"
         ) {
-            alert("Transaction Failed: The contract rejected the transaction.\n\nThis is usually NOT because of low ETH balance (Gas), but because:\n1. The contract is paused/deprecated.\n2. Or you are not eligible.");
+            alert("❌ Transaction Failed\n\nThe contract blocked the minting. This is likely a logic restriction in the Demo Contract, not a lack of Gas.");
             return false;
         }
 
-        if (e.message && (e.message.includes("rejected") || e.message.includes("denied"))) return false;
-
-        alert("Transaction failed. Please check your internet connection or try again.");
+        alert("Transaction failed. Please check your internet connection.");
         return false;
     }
 }
 
-// 5. Get Identity Status (Balance Check)
+// 5. Get Identity Status
 export interface IdentityStatus {
     hasIdentity: boolean;
     balance: number;
@@ -200,7 +212,6 @@ export const getIdentityStatus = async (address: string, chainId: number): Promi
                 tokenAddress = await factoryContract.sbt();
             }
         } catch (contractErr) {
-            console.warn(`Failed to fetch token address from factory on chain ${chainId}`, contractErr);
             return { hasIdentity: false, balance: 0 };
         }
 
@@ -216,7 +227,6 @@ export const getIdentityStatus = async (address: string, chainId: number): Promi
             balance: Number(balance)
         };
     } catch (e) {
-        console.warn(`Failed to fetch identity status for chain ${chainId}:`, e);
         return { hasIdentity: false, balance: 0 };
     }
 }

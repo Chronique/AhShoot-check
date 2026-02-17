@@ -19,7 +19,9 @@
     "wagmi": "2.5.7",
     "@coinbase/onchainkit": "0.9.0",
     "clsx": "^2.1.1",
-    "tailwind-merge": "^3.4.1"
+    "tailwind-merge": "^3.4.1",
+    "next": "^16.1.6",
+    "@farcaster/quick-auth": "^0.0.8"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

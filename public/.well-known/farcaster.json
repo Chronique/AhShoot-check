@@ -1,8 +1,8 @@
 {
   "accountAssociation": {
-    "header": "eyJmaWQiOiA4ODcyNDYsICJ0eXBlIjogImN1c3RvZHkiLCAia2V5IjogIjB4N0Q0MDBGRDFGNTkyYkI0RkNkNmEzNjNCZkQyMDBBNDNEMDdlNjE5NiJ9",
-    "payload": "eyJkb21haW4iOiAibWluaWtpH-ZGVtby52ZXJjZWwuYXBwIn0",
-    "signature": "MHgxMjM0NTY3ODkwYWJjZGVmMTIzNDU2Nzg5MGFiY2RlZjEyMzQ1Njc4OTBhYmNkZWYxMjM0NTY3ODkwYWJjZGVmMTIzNDU2Nzg5MGFiY2RlZjEyMzQ1Njc4OTBhYmNkZWYxMjM0NTY3ODkwYWJjZGVmMTIzNDU2Nzg5MGFiY2RlZjFj"
+    "header": "eyJmaWQiOjM0NTk5MywidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweDExMDkxOGJiRmQ2ODE3NjRhMTU3MDU4MUVBNTI0N2ZmYjk5M0NGYzAifQ",
+    "payload": "eyJkb21haW4iOiJhaC1zaG9vdC1jaGVjay52ZXJjZWwuYXBwIn0",
+    "signature": "r66zPXTRz21Ohn8m/oAy2ENvWRTQPDXpujfIrdyp175dYBjTgFGcWs57MCoqA2xlHKOsmA/OH4JVGyh2F4Jwmxs="
   },
   "frame": {
     "version": "1",
@@ -40,5 +40,8 @@
       "miniapp",
       "tools"
     ]
-  }
+  },
+  "allowedAddresses": [
+    "0x4fba95e4772be6d37a0c931D00570Fe2c9675524"
+  ]
 }

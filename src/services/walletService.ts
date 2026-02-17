@@ -1,3 +1,4 @@
+
 import { BrowserProvider, Contract, JsonRpcProvider } from 'ethers';
 import { BASE_CHAIN_ID, LINEA_CHAIN_ID, BASE_CONTRACT_ADDRESS, LINEA_CONTRACT_ADDRESS, FACTORY_ABI, ERC721_ABI } from '../constants';
 import { sdk } from '@farcaster/miniapp-sdk';
@@ -10,14 +11,19 @@ declare global {
 
 // Helper to get the raw ethereum provider
 const getRawProvider = () => {
-    // Check Farcaster SDK Provider first
-    if (typeof sdk !== 'undefined' && sdk.wallet?.ethProvider) {
-        return sdk.wallet.ethProvider;
-    }
-    // Check Window Ethereum
+    // 1. Prioritize Window Ethereum (Standard Wallets / Desktop)
+    // If window.ethereum is available, use it. This prevents the SDK provider 
+    // from throwing errors when running in a standard browser environment.
     if (typeof window !== 'undefined' && window.ethereum) {
         return window.ethereum;
     }
+
+    // 2. Fallback to Farcaster SDK Provider (Frame Context)
+    // Only use this if we are likely in a Farcaster context or if window.ethereum is missing
+    if (typeof sdk !== 'undefined' && sdk.wallet?.ethProvider) {
+        return sdk.wallet.ethProvider;
+    }
+    
     return null;
 };
 
@@ -31,8 +37,9 @@ export const checkWalletConnection = async (): Promise<string | null> => {
       const accounts = await rawProvider.request({ method: 'eth_accounts' }) as string[];
       if (accounts && accounts.length > 0) return accounts[0];
       return null;
-  } catch (error) {
-    console.warn("Silent connection check failed:", error);
+  } catch (error: any) {
+    // Suppress errors during silent check to avoid console noise on Web
+    // specifically "RpcResponse.InternalErrorError" from Farcaster SDK
     return null;
   }
 };
@@ -41,7 +48,7 @@ export const checkWalletConnection = async (): Promise<string | null> => {
 export const connectWallet = async (): Promise<string | null> => {
   const rawProvider = getRawProvider();
   if (!rawProvider) {
-       alert("Wallet not found. Please use a crypto wallet.");
+       alert("Wallet not found. Please install a crypto wallet (Metamask, Rabby, etc).");
        return null;
   }
 
@@ -55,10 +62,19 @@ export const connectWallet = async (): Promise<string | null> => {
       return null;
   } catch (error: any) {
     console.error("Connection error:", error);
+    
     // User rejected request
     if (error.code === 4001 || error?.info?.error?.code === 4001) return null;
     
+    // Catch Farcaster SDK failure on Web (RpcResponse.InternalErrorError)
+    // This happens when falling back to SDK provider on a standard browser without parent frame
+    if (error?.toString().includes("RpcResponse") || error?.name === "InternalErrorError" || error?.message?.includes("reading 'error'")) {
+        alert("Wallet not detected. Please install MetaMask, Rabby, or open in Coinbase Wallet.");
+        return null;
+    }
+
     // Fallback error message
+    alert("Connection failed. Please unlock your wallet and try again.");
     return null;
   }
 };

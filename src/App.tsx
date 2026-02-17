@@ -192,7 +192,6 @@ const App: React.FC = () => {
 
           <h3 className="font-bold text-slate-400 text-sm uppercase tracking-wide mb-3 pl-1">Trending Schemas</h3>
           
-          {/* UPDATED: Added scroll snap, visible scrollbar, and fixed width items */}
           <div className="flex overflow-x-auto gap-3 pb-4 -mx-4 px-4 snap-x touch-pan-x">
               {POPULAR_SCHEMAS.map(s => (
                   <div key={s.uid} className="min-w-[160px] w-[160px] flex-shrink-0 snap-start bg-slate-800 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-2 shadow-sm hover:bg-slate-800/80 active:scale-95 transition-all">

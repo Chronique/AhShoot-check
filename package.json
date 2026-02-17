@@ -17,7 +17,9 @@
     "ethers": "6.11.1",
     "viem": "2.7.1",
     "wagmi": "2.5.7",
-    "@coinbase/onchainkit": "0.9.0"
+    "@coinbase/onchainkit": "0.9.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.4.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

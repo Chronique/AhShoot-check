@@ -17,12 +17,16 @@ export const LINEA_SCHEMA_ID = '0x32b5753e506972049e2187b5a5e3077751c3132e0e0258
 export const TARGET_SCHEMA_UID = BASE_SCHEMA_UID;
 export const TARGET_CONTRACT_ADDRESS = BASE_CONTRACT_ADDRESS;
 
-// UPDATED ABI for Identity Factory
-export const CONTRACT_ABI = [
+// UPDATED ABI for Identity Factory & Tokens
+export const FACTORY_ABI = [
   // Core Interaction
   "function mint() external",
-  
-  // View Functions
+  // View Functions to get the actual Token Contract Address
+  "function nft() external view returns (address)", // Base Factory
+  "function sbt() external view returns (address)"  // Linea Factory
+];
+
+export const ERC721_ABI = [
   "function balanceOf(address owner) external view returns (uint256)"
 ];
 

@@ -1,6 +1,5 @@
-
-import { BrowserProvider, Contract, parseEther } from 'ethers';
-import { BASE_CHAIN_ID, TARGET_CONTRACT_ADDRESS, CONTRACT_ABI } from '../src/constants';
+import { BrowserProvider, Contract } from 'ethers';
+import { BASE_CHAIN_ID, TARGET_CONTRACT_ADDRESS, FACTORY_ABI } from '../src/constants';
 
 declare global {
   interface Window {
@@ -80,10 +79,10 @@ export const interactWithContract = async (): Promise<boolean> => {
     const provider = new BrowserProvider(window.ethereum);
     const signer = await provider.getSigner();
     
-    const contract = new Contract(TARGET_CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+    const contract = new Contract(TARGET_CONTRACT_ADDRESS, FACTORY_ABI, signer);
     
-    // Call the attest function
-    const tx = await contract.attest();
+    // Call the mint function
+    const tx = await contract.mint();
 
     console.log("Transaction sent:", tx.hash);
     await tx.wait(); // Wait for confirmation

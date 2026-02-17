@@ -1,6 +1,6 @@
 
-import { BrowserProvider, Contract } from 'ethers';
-import { BASE_CHAIN_ID, LINEA_CHAIN_ID, BASE_CONTRACT_ADDRESS, LINEA_CONTRACT_ADDRESS, CONTRACT_ABI } from '../constants';
+import { BrowserProvider, Contract, JsonRpcProvider } from 'ethers';
+import { BASE_CHAIN_ID, LINEA_CHAIN_ID, BASE_CONTRACT_ADDRESS, LINEA_CONTRACT_ADDRESS, FACTORY_ABI, ERC721_ABI } from '../constants';
 import { sdk } from '@farcaster/miniapp-sdk';
 
 declare global {
@@ -121,7 +121,8 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
         const contractAddress = targetChainId === LINEA_CHAIN_ID ? LINEA_CONTRACT_ADDRESS : BASE_CONTRACT_ADDRESS;
 
         const signer = await provider.getSigner();
-        const contract = new Contract(contractAddress, CONTRACT_ABI, signer);
+        // Use FACTORY_ABI to call mint()
+        const contract = new Contract(contractAddress, FACTORY_ABI, signer);
         
         // 3. Send Transaction
         const tx = await contract.mint();
@@ -151,28 +152,39 @@ export interface IdentityStatus {
 
 export const getIdentityStatus = async (address: string, chainId: number): Promise<IdentityStatus> => {
     try {
-        const rawProvider = getRawProvider();
-        if (!rawProvider) {
+        // Use JsonRpcProvider for reliable read-only calls independent of the user's wallet connection
+        const rpcUrl = chainId === BASE_CHAIN_ID ? 'https://mainnet.base.org' : 'https://rpc.linea.build';
+        const provider = new JsonRpcProvider(rpcUrl);
+        
+        // 1. Get Factory Contract
+        const factoryAddress = chainId === LINEA_CHAIN_ID ? LINEA_CONTRACT_ADDRESS : BASE_CONTRACT_ADDRESS;
+        const factoryContract = new Contract(factoryAddress, FACTORY_ABI, provider);
+        
+        // 2. Fetch the actual Token Address from the Factory
+        // Base Factory has 'nft()', Linea Factory has 'sbt()'
+        let tokenAddress: string;
+        if (chainId === BASE_CHAIN_ID) {
+            tokenAddress = await factoryContract.nft();
+        } else {
+            tokenAddress = await factoryContract.sbt();
+        }
+
+        if (!tokenAddress || tokenAddress === '0x0000000000000000000000000000000000000000') {
+             // Token contract not set on factory yet
              return { hasIdentity: false, balance: 0 };
         }
+
+        // 3. Check Balance on the Token Contract
+        const tokenContract = new Contract(tokenAddress, ERC721_ABI, provider);
+        const balance = await tokenContract.balanceOf(address);
         
-        // For read operations, we try to use the provider. 
-        // Note: This might throw if the wallet is on a different network and refuses to proxy the call.
-        const provider = new BrowserProvider(rawProvider as any);
-        
-        const contractAddress = chainId === LINEA_CHAIN_ID ? LINEA_CONTRACT_ADDRESS : BASE_CONTRACT_ADDRESS;
-        
-        const contract = new Contract(contractAddress, CONTRACT_ABI, provider);
-        
-        // Attempt read
-        const balance = await contract.balanceOf(address);
         return {
             hasIdentity: Number(balance) > 0,
             balance: Number(balance)
         };
     } catch (e) {
-        // Silent failure for read-only checks (expected if wrong network)
-        // console.warn("Failed to fetch identity status:", e);
+        // Silent failure for read-only checks (network errors, etc.)
+        console.warn(`Failed to fetch identity status for chain ${chainId}:`, e);
         return { hasIdentity: false, balance: 0 };
     }
 }

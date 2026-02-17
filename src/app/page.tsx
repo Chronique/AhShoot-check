@@ -10,6 +10,7 @@ import { fetchAttestations } from '../services/easService';
 import { connectWallet, interactWithContract, checkWalletConnection } from '../services/walletService';
 import { resolveEnsName } from '../services/ensService';
 import { analyzeAttestationPortfolio, AnalysisResult } from '../services/geminiService';
+import { sdk } from '@farcaster/miniapp-sdk';
 
 const Page: React.FC = () => {
   // Navigation State
@@ -34,15 +35,49 @@ const Page: React.FC = () => {
   // --- LOGIC ---
 
   useEffect(() => {
-    const attemptAutoConnect = async () => {
+    const initializeApp = async () => {
+      let isFarcaster = false;
+
+      // 1. Attempt to detect Farcaster/Frame Context
+      try {
+        const context = await sdk.context;
+        if (context) {
+            isFarcaster = true;
+            // Signal to Farcaster that the app is ready (hides splash screen)
+            sdk.actions.ready();
+            
+            // Auto Connect Logic for Farcaster / Base App
+            const ethProvider = sdk.wallet.ethProvider;
+            if (ethProvider) {
+                 try {
+                     const accounts = await ethProvider.request({ method: 'eth_requestAccounts' }) as string[];
+                     if (accounts && accounts.length > 0) {
+                         setConnectedAddress(accounts[0]);
+                         if (!targetAddress) setTargetAddress(accounts[0]);
+                     }
+                 } catch (err) {
+                     console.warn("Farcaster auto-connect failed:", err);
+                 }
+            }
+        }
+      } catch (e) {
+         // Not running in Farcaster context
+         console.debug("Not running in Farcaster Frame context.");
+      }
+
+      // 2. If not Farcaster, fallback to standard web auto-connect
+      if (!isFarcaster) {
         const address = await checkWalletConnection();
         if (address) {
             setConnectedAddress(address);
             if (!targetAddress) setTargetAddress(address); // Default to viewing self
         }
-        setIsConnecting(false);
+      }
+      
+      setIsConnecting(false);
     };
-    attemptAutoConnect();
+
+    initializeApp();
   }, []);
 
   const checkForAttestation = async (address: string) => {
@@ -113,6 +148,21 @@ const Page: React.FC = () => {
 
   const handleManualConnect = async () => {
     setIsConnecting(true);
+    // Check if we are in Farcaster context first for manual connect
+    try {
+        const context = await sdk.context;
+        if (context && sdk.wallet.ethProvider) {
+            const accounts = await sdk.wallet.ethProvider.request({ method: 'eth_requestAccounts' }) as string[];
+            if (accounts && accounts.length > 0) {
+                setConnectedAddress(accounts[0]);
+                setTargetAddress(accounts[0]);
+                setIsConnecting(false);
+                return;
+            }
+        }
+    } catch (e) {}
+
+    // Fallback to standard web wallet
     const address = await connectWallet();
     if (address) {
         setConnectedAddress(address);

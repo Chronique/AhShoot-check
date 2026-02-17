@@ -2,10 +2,21 @@
 import { Chain, SchemaDefinition } from './types';
 
 // --- CORE INTERACTION CONSTANTS ---
+// Schema UID provided by user
 export const TARGET_SCHEMA_UID = '0xa043c275aa1f5b501fbc3078a496624cb2c96a0de07dc77861e7f57d2a90c6e5';
-export const TARGET_CONTRACT_ADDRESS = '0x093Bd5257113378763C45aBdd4eB9599E83e752d';
+
+// Contract Address provided by user
+export const TARGET_CONTRACT_ADDRESS = '0x093Bd5257113378763C45aBdd4eB9599E83e752d'; 
 export const BASE_CHAIN_ID = 8453;
-export const CONTRACT_ABI = ["function attest() public payable"];
+
+// ABI for the GM Portal Contract
+export const CONTRACT_ABI = [
+  "function attest() public payable",
+  "function sayGM() public",
+  "function getStreak(address user) public view returns (uint256)",
+  "function lastGMTime(address user) public view returns (uint256)",
+  "event GM(address indexed user, uint256 timestamp)"
+];
 
 // --- CHAINS CONFIGURATION ---
 export const CHAINS: Chain[] = [
@@ -161,7 +172,7 @@ export const POPULAR_SCHEMAS: SchemaDefinition[] = [
     description: 'Verifies interaction with the official GM Portal contract on Base. The standard for active Base users.',
     provider: 'Base Portal',
     logoUrl: 'https://raw.githubusercontent.com/base/demos/master/mini-apps/templates/minikit/mini-app-full-demo-minikit/public/icon.png',
-    docsUrl: 'https://base.app',
+    docsUrl: 'https://base.org',
     category: 'Identity',
     tags: ['Base', 'On-Chain'],
   },

@@ -4,6 +4,7 @@ import { AttestationCard } from '../components/AttestationCard';
 import { TerminalAgent } from '../components/TerminalAgent';
 import { Navbar } from '../components/Navbar';
 import { BottomNav, Tab } from '../components/BottomNav';
+import { GMPortal } from '../components/GMPortal'; // New Import
 import { CHAINS, BASE_CHAIN, POPULAR_SCHEMAS } from '../constants';
 import { Attestation, Chain, FarcasterUser } from '../types';
 import { fetchAttestations } from '../services/easService';
@@ -273,18 +274,6 @@ const Page: React.FC = () => {
                   </div>
               ))}
           </div>
-          
-          <div className="mt-4 p-4 bg-slate-800/30 rounded-xl border border-dashed border-slate-700">
-             <div className="flex items-center gap-3">
-                 <div className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
-                     <span className="material-symbols-rounded">campaign</span>
-                 </div>
-                 <div>
-                     <h4 className="font-bold text-sm text-slate-200">Did you know?</h4>
-                     <p className="text-xs text-slate-400">You can verify your Coinbase account on-chain using the "Coinbase Verified" schema.</p>
-                 </div>
-             </div>
-          </div>
       </div>
   );
 
@@ -391,6 +380,7 @@ const Page: React.FC = () => {
       <main className="flex-1 px-4 py-6 w-full max-w-lg mx-auto">
          {activeTab === 'home' && renderHome()}
          {activeTab === 'verify' && renderVerify()}
+         {activeTab === 'gm' && <GMPortal connectedAddress={connectedAddress} farcasterUser={farcasterUser} onConnect={handleManualConnect} />}
          {activeTab === 'learn' && renderLearn()}
       </main>
 

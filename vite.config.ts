@@ -13,6 +13,27 @@ export default defineConfig(({ mode }) => {
         "@": path.resolve(__dirname, "./src"),
       },
     },
+    build: {
+      rollupOptions: {
+        // Externalize modules that are provided via importmap in index.html
+        external: [
+          'react',
+          'react-dom',
+          'react-dom/client',
+          '@google/genai',
+          'ethers',
+          'viem',
+          'wagmi',
+          '@coinbase/onchainkit',
+          'clsx',
+          'tailwind-merge',
+          'react-markdown',
+          'lucide-react',
+          '@farcaster/quick-auth',
+          '@farcaster/miniapp-sdk'
+        ]
+      }
+    },
     // Shim process.env untuk kompatibilitas dengan code Next.js/library lama
     define: {
       'process.env.NEXT_PUBLIC_URL': JSON.stringify(env.NEXT_PUBLIC_URL),

@@ -1,5 +1,13 @@
+
 import { Chain, SchemaDefinition } from './types';
 
+// --- CORE INTERACTION CONSTANTS ---
+export const TARGET_SCHEMA_UID = '0xa043c275aa1f5b501fbc3078a496624cb2c96a0de07dc77861e7f57d2a90c6e5';
+export const TARGET_CONTRACT_ADDRESS = '0x093Bd5257113378763C45aBdd4eB9599E83e752d';
+export const BASE_CHAIN_ID = 8453;
+export const CONTRACT_ABI = ["function attest() public payable"];
+
+// --- CHAINS CONFIGURATION ---
 export const CHAINS: Chain[] = [
   // --- Ethereum L1 ---
   { 
@@ -9,7 +17,7 @@ export const CHAINS: Chain[] = [
     logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
     graphqlUrl: 'https://easscan.org/graphql',
     vmType: 'EVM',
-    group: 'Ethereum L1'
+    group: 'Ethereum Mainnet'
   },
   
   // --- Optimistic Rollups ---
@@ -44,8 +52,7 @@ export const CHAINS: Chain[] = [
     id: 1946, 
     name: 'Soneium', 
     color: 'slate-400', 
-    logoUrl: 'https://raw.githubusercontent.com/Soneium/brand-assets/main/soneium-icon.png', // Fallback or hypothetical location, using generic for now if specific not found
-    // graphqlUrl: Pending
+    logoUrl: 'https://raw.githubusercontent.com/Soneium/brand-assets/main/soneium-icon.png', 
     vmType: 'EVM',
     group: 'Optimism Rollups'
   },
@@ -53,8 +60,7 @@ export const CHAINS: Chain[] = [
     id: 763373, 
     name: 'Ink', 
     color: 'purple-600', 
-    logoUrl: 'https://pbs.twimg.com/profile_images/1849126927762075648/W2t2t54__400x400.jpg', // Ink by Kraken
-    // graphqlUrl: Pending
+    logoUrl: 'https://pbs.twimg.com/profile_images/1849126927762075648/W2t2t54__400x400.jpg', 
     vmType: 'EVM',
     group: 'Optimism Rollups'
   },
@@ -62,8 +68,7 @@ export const CHAINS: Chain[] = [
     id: 'tempo-testnet', 
     name: 'Tempo', 
     color: 'orange-400', 
-    logoUrl: '', // No official logo yet
-    // graphqlUrl: Pending
+    logoUrl: '', 
     vmType: 'EVM',
     group: 'Optimism Rollups'
   },
@@ -72,7 +77,6 @@ export const CHAINS: Chain[] = [
     name: 'Arc', 
     color: 'indigo-400', 
     logoUrl: '', 
-    // graphqlUrl: Pending
     vmType: 'EVM',
     group: 'Optimism Rollups'
   },
@@ -123,7 +127,7 @@ export const CHAINS: Chain[] = [
     name: 'Solana',
     color: 'purple-400',
     logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/solana/info/logo.png',
-    vmType: 'SVM',
+    vmType: 'SVM', // Will need Mock or Specific adapter
     group: 'SVM'
   },
 
@@ -146,8 +150,21 @@ export const CHAINS: Chain[] = [
   }
 ];
 
-// REAL WORLD POPULAR SCHEMAS
+// Helper to get Base chain easily for default actions
+export const BASE_CHAIN = CHAINS.find(c => c.id === BASE_CHAIN_ID)!;
+
+// --- POPULAR SCHEMAS ---
 export const POPULAR_SCHEMAS: SchemaDefinition[] = [
+  {
+    uid: TARGET_SCHEMA_UID,
+    name: 'Verified Base User',
+    description: 'Verifies interaction with the official GM Portal contract on Base. The standard for active Base users.',
+    provider: 'Base Portal',
+    logoUrl: 'https://raw.githubusercontent.com/base/demos/master/mini-apps/templates/minikit/mini-app-full-demo-minikit/public/icon.png',
+    docsUrl: 'https://base.app',
+    category: 'Identity',
+    tags: ['Base', 'On-Chain'],
+  },
   {
     uid: '0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9',
     name: 'Coinbase Verified Account',
@@ -169,22 +186,12 @@ export const POPULAR_SCHEMAS: SchemaDefinition[] = [
     tags: ['Optimism Network', 'Sybil Resistance', 'Score'],
   },
   {
-    uid: '0xGalxePassportKYCPlaceholderHASH12345678901234567890123456789012',
-    name: 'Galxe Verified User',
-    description: 'Galxe Passport verification which confirms the user has passed KYC requirements, ensuring unique human identity.',
-    provider: 'Galxe',
-    logoUrl: 'https://raw.githubusercontent.com/Galxe/react-indentity-protocol-template/main/src/assets/galxe.png',
-    docsUrl: 'https://app.galxe.com/',
-    category: 'Identity',
-    tags: ['Multi-Chain', 'KYC', 'Web3 Credential'],
-  },
-  {
     uid: '0x32b5753e506972049e2187b5a5e3077751c3132e0e025816913169046777063d',
     name: 'Farcaster ID',
     description: 'Links an Ethereum address to a Farcaster ID (FID), proving social identity on the decentralized protocol.',
     provider: 'Farcaster',
     logoUrl: 'https://raw.githubusercontent.com/farcasterxyz/docs/main/docs/public/icon.png',
-    docsUrl: 'https://docs.farcaster.xyz/',
+    docsUrl: 'https://farcaster.xyz/',
     category: 'Social',
     tags: ['Optimism Network', 'Social Graph', 'Lens'],
   },
@@ -194,7 +201,7 @@ export const POPULAR_SCHEMAS: SchemaDefinition[] = [
     description: 'Verifies that the address belongs to a unique human who has verified via the Worldcoin Orb or Device.',
     provider: 'Worldcoin',
     logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0x163f8C2467924be0ae7B5347228CABF260318753/logo.png',
-    docsUrl: 'https://docs.world.org/world-id',
+    docsUrl: 'https://world.org/',
     category: 'Biometric',
     tags: ['Optimism Network', 'ZK-Proof', 'PoP'],
   },
@@ -203,7 +210,7 @@ export const POPULAR_SCHEMAS: SchemaDefinition[] = [
     name: 'Blackbird Membership',
     description: 'Restaurant loyalty and membership attestations used by the Blackbird platform on Base.',
     provider: 'Blackbird',
-    logoUrl: 'https://pbs.twimg.com/profile_images/1628173574891823105/sYk-4u3l_400x400.jpg', // Twitter profile image as fallback
+    logoUrl: 'https://pbs.twimg.com/profile_images/1628173574891823105/sYk-4u3l_400x400.jpg', 
     docsUrl: 'https://www.blackbird.xyz/',
     category: 'Social',
     tags: ['Base Network', 'Loyalty', 'Consumer'],
@@ -214,7 +221,7 @@ export const POPULAR_SCHEMAS: SchemaDefinition[] = [
     description: 'Awarded to developers who participate in Onchain Summer or Base Buildathons.',
     provider: 'Base',
     logoUrl: 'https://raw.githubusercontent.com/base/demos/master/mini-apps/templates/minikit/mini-app-full-demo-minikit/public/icon.png',
-    docsUrl: 'https://docs.base.org/',
+    docsUrl: 'https://www.base.org/build',
     category: 'Social',
     tags: ['Base Network', 'Developer', 'Hackathon'],
   },
@@ -224,28 +231,10 @@ export const POPULAR_SCHEMAS: SchemaDefinition[] = [
     description: 'Role verification from Guild.xyz, linking Discord/Telegram roles to on-chain status.',
     provider: 'Guild',
     logoUrl: 'https://avatars.githubusercontent.com/u/89776950?s=200&v=4',
-    docsUrl: 'https://docs.guild.xyz/guild/',
+    docsUrl: 'https://guild.xyz/explorer',
     category: 'Social',
     tags: ['Multi-Chain', 'Community', 'Discord'],
-  },
-  {
-    uid: '0xCLIQUETEE79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0',
-    name: 'Clique TEE Reputation',
-    description: 'Privacy-preserving reputation analysis computed inside Trusted Execution Environments.',
-    provider: 'Clique',
-    logoUrl: 'https://avatars.githubusercontent.com/u/98739266?s=200&v=4',
-    docsUrl: 'https://docs.clique.social/',
-    category: 'DeFi',
-    tags: ['Multi-Chain', 'TEE', 'Privacy'],
-  },
-  {
-    uid: '0xMETADATA79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0',
-    name: 'EAS Metadata',
-    description: 'Standard metadata attestation used to attach names or descriptions to other schemas or UIDs.',
-    provider: 'EAS',
-    logoUrl: 'https://avatars.githubusercontent.com/u/108018337?s=200&v=4',
-    docsUrl: 'https://docs.attest.org/docs/tutorials/create-a-schema',
-    category: 'Governance',
-    tags: ['Utility', 'System'],
   }
 ];
+
+export const CUSTOM_CONTRACTS = { GMPORTAL_BASE: TARGET_CONTRACT_ADDRESS };

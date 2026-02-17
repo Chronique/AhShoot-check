@@ -4,21 +4,23 @@ export type VMType = 'EVM' | 'SVM' | 'MoveVM';
 export interface Chain {
   id: number | string;
   name: string;
-  color: string; // Kept for border/fallback styling
-  logoUrl: string; // New: URL to the official logo
+  color: string;
+  logoUrl: string;
   graphqlUrl?: string;
   vmType: VMType;
   group: string;
 }
+
+export type SchemaCategory = 'Identity' | 'Social' | 'Biometric' | 'DeFi' | 'Governance';
 
 export interface SchemaDefinition {
   uid: string;
   name: string;
   description: string;
   provider: string; 
-  logoUrl?: string; // New: Provider logo (e.g., Gitcoin logo)
-  docsUrl: string; // New: Link to official documentation
-  category: 'Identity' | 'DeFi' | 'Social' | 'Governance' | 'Biometric' | 'ZK';
+  logoUrl?: string;
+  docsUrl: string;
+  category: SchemaCategory;
   tags: string[];
 }
 
@@ -33,29 +35,26 @@ export interface Attestation {
   provider?: string;
   network: string;
   networkColor: string;
-  networkLogo?: string; // New: To display on the card
+  networkLogo?: string;
+  schemaLogo?: string;
 }
 
-export interface TutorialRequest {
-  topic: string;
-  chain: string;
-}
-
-export interface AnalysisResult {
-  score: number;
-  persona: string;
-  analysis: string;
-  louvainCluster: string; 
-  lightgbmConfidence: number; 
-}
-
-export interface ChatMessage {
-  role: 'user' | 'agent' | 'system';
-  content: string;
-  timestamp: number;
+export interface SchemaRecord {
+  uid: string;
+  schema: string;
+  creator: string;
+  resolver: string;
+  attestationCount: number;
+  network: string;
 }
 
 export enum AppView {
   EXPLORER = 'EXPLORER',
   TUTORIALS = 'TUTORIALS',
+}
+
+export interface ChatMessage {
+  role: 'system' | 'user' | 'agent';
+  content: string;
+  timestamp: number;
 }

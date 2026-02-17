@@ -1,11 +1,10 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
-import { SchemaDefinition } from '../types';
-import { POPULAR_SCHEMAS } from '../constants';
 
 const getClient = () => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
-    console.warn("API Key not found. AI features will be disabled.");
+    // console.warn("API Key not found."); 
     return null;
   }
   return new GoogleGenAI({ apiKey });
@@ -30,47 +29,30 @@ export interface AnalysisResult {
   score: number;
   persona: string;
   analysis: string;
-  louvainCluster: string;
-  lightgbmConfidence: number;
+  identityCluster: string; // Renamed from louvainCluster
+  confidenceScore: number; // Renamed from lightgbmConfidence
 }
 
 export const analyzeAttestationPortfolio = async (attestations: string[]): Promise<AnalysisResult | null> => {
     const client = getClient();
     
-    // Fallback logic to ensure UI doesn't break when API is down/limited
-    const generateFallback = (): AnalysisResult => {
-        const count = attestations.length;
-        // Simple logic to simulate a score based on number of attestations
-        const score = Math.min(96, 45 + (count * 7));
-        
-        let persona = "Explorer";
-        if (count > 2) persona = "Active Citizen";
-        if (count > 5) persona = "Power User";
-        if (count > 8) persona = "Identity Maxi";
-
-        return {
-            score,
-            persona,
-            analysis: `⚠️ AI Offline: Based on your ${count} credentials, you show ${count > 3 ? "strong" : "emerging"} on-chain activity. (Simulated Analysis due to high traffic)`,
-            louvainCluster: "Cluster Pending",
-            lightgbmConfidence: 0.85
-        };
-    };
-
-    if (!client) return generateFallback();
+    if (!client) {
+        // Return null instead of fake data so the UI can handle "No Analysis" gracefully
+        return null;
+    }
 
     try {
         const prompt = `
           Analyze the following on-chain attestations for a user address: ${attestations.join(', ')}.
           
-          Simulate a high-tech data science analysis using "Louvain Clustering" for community detection and "LightGBM" for classification, executed within a Clique TEE (Trusted Execution Environment) for privacy.
+          Perform a portfolio analysis based on the credibility of these schemas.
           
           Determine:
           1. A "Reputation Score" (0-100).
-          2. A "Persona" (e.g. "Verified Human", "DeFi Whale", "Airdrop Hunter").
-          3. A short 2-sentence analysis.
-          4. A "Louvain Cluster Label" (e.g., "Tier 1 Validated Users", "Loose Social Graph", "Sybil Suspect Group").
-          5. A "LightGBM Confidence" score (0.0 to 1.0) representing the model's certainty.
+          2. A "Persona" (e.g. "Verified Human", "DeFi Power User", "Airdrop Farmer").
+          3. A short 2-sentence behavioral analysis.
+          4. An "Identity Cluster" label describing their user group (e.g., "Tier 1 Validated", "Loose Social Graph", "High Value Trader").
+          5. A "Confidence Score" (0.0 to 1.0) representing your certainty based on the data provided.
         `;
     
         const response = await client.models.generateContent({
@@ -84,8 +66,8 @@ export const analyzeAttestationPortfolio = async (attestations: string[]): Promi
                 score: { type: Type.NUMBER },
                 persona: { type: Type.STRING },
                 analysis: { type: Type.STRING },
-                louvainCluster: { type: Type.STRING },
-                lightgbmConfidence: { type: Type.NUMBER },
+                identityCluster: { type: Type.STRING },
+                confidenceScore: { type: Type.NUMBER },
               }
             }
           }
@@ -94,13 +76,13 @@ export const analyzeAttestationPortfolio = async (attestations: string[]): Promi
         if (response.text) {
           return JSON.parse(response.text) as AnalysisResult;
         }
-        return generateFallback();
+        return null;
       } catch (error) {
         if (isQuotaError(error)) {
-            console.warn("Gemini Quota Exceeded (Analysis) - Using fallback simulation.");
+            console.warn("Gemini Quota Exceeded (Analysis).");
         } else {
-            console.warn("Gemini Analysis Error - Using fallback:", error);
+            console.error("Gemini Analysis Error:", error);
         }
-        return generateFallback();
+        return null;
       }
 }

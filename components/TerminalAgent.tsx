@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { POPULAR_SCHEMAS } from '../constants';
 import ReactMarkdown from 'react-markdown';
@@ -31,7 +32,7 @@ export const TerminalAgent: React.FC = () => {
       case 'help':
         return `**AVAILABLE COMMANDS:**
 - \`list\`: Show all available verification schemas.
-- \`verify <name>\`: Get docs for a provider (e.g. \`verify gitcoin\`).
+- \`verify <name>\`: Get docs for a provider (e.g. \`verify base\`).
 - \`status\`: Check system connectivity.
 - \`clear\`: Clear terminal history.`;
 
@@ -45,10 +46,24 @@ export const TerminalAgent: React.FC = () => {
       case 'verify':
         if (!args) return "ERR: Missing argument. Usage: `verify <provider_name>` (e.g., `verify coinbase`)";
         
-        const found = POPULAR_SCHEMAS.find(s => 
-            s.provider.toLowerCase().includes(args) || 
-            s.name.toLowerCase().includes(args)
-        );
+        // Improved Search Logic
+        // 1. Exact Provider Match (e.g. "base" matches "Base" but not "Base Portal")
+        let found = POPULAR_SCHEMAS.find(s => s.provider.toLowerCase() === args);
+        
+        // 2. Exact Name Match
+        if (!found) {
+             found = POPULAR_SCHEMAS.find(s => s.name.toLowerCase() === args);
+        }
+
+        // 3. Partial Provider Match
+        if (!found) {
+            found = POPULAR_SCHEMAS.find(s => s.provider.toLowerCase().includes(args));
+        }
+
+        // 4. Partial Name Match
+        if (!found) {
+             found = POPULAR_SCHEMAS.find(s => s.name.toLowerCase().includes(args));
+        }
 
         if (found) {
             return `**${found.name}**\n\n${found.description}\n\n**Action Required:**\n[OPEN OFFICIAL DOCUMENTATION](${found.docsUrl})`;

@@ -111,7 +111,7 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
 
     try {
         const provider = new BrowserProvider(rawProvider as any);
-        const signer = await provider.getSigner(); // Get signer BEFORE network switch ensures provider is ready
+        const signer = await provider.getSigner();
         
         // 1. Force Switch Network
         await switchNetwork(provider, targetChainId);
@@ -121,7 +121,6 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
         const contract = new Contract(contractAddress, FACTORY_ABI, signer);
         
         // --- PRE-FLIGHT 1: CHECK BALANCE ---
-        // Prevents minting if already owned (saves gas and error confusion)
         try {
             let tokenAddress = '';
             if (targetChainId === BASE_CHAIN_ID) {
@@ -136,7 +135,7 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
                 const balance = await tokenContract.balanceOf(userAddress);
                 
                 if (balance > 0n) {
-                    alert("✅ Verification: You already own this Identity! Updating status...");
+                    alert("✅ You already own this Identity! Updating status...");
                     return true;
                 }
             }
@@ -145,26 +144,21 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
         }
 
         // --- PRE-FLIGHT 2: SIMULATE TRANSACTION (STATIC CALL) ---
-        // This checks if the contract WILL revert before we even open the wallet popup.
-        // This avoids the "Simulation Failed" red screen in Rabby/Metamask.
+        // We try to simulate. If it fails, we warn the user but ALLOW them to proceed (Force Mint).
         try {
-            // staticCall runs the function on the node without sending a tx
             await contract.mint.staticCall(); 
         } catch (simError: any) {
-            console.error("Simulation Failed:", simError);
+            console.warn("Simulation Failed:", simError);
             
-            // Handle specific revert #1002 or others
-            const errString = simError.toString();
-            if (errString.includes("#1002") || errString.includes("reverted")) {
-                alert(`⚠️ Mint Unavailable\n\nThe contract rejected the request (Error #1002).\nPossible reasons:\n- Global supply limit reached.\n- Contract is paused.\n- You are not on the allowlist.\n\n(This is NOT a gas issue).`);
-                return false;
-            }
-            // Allow unknown simulation errors to proceed to actual TX attempt just in case
+            const confirmMsg = "⚠️ Contract Simulation Failed\n\nThe contract rejected the test transaction. This usually means:\n1. You are not eligible.\n2. The contract is paused.\n3. You already own the NFT.\n\nIt is NOT a gas issue.\n\nDo you want to force the transaction anyway? (Gas might be wasted)";
+            const proceed = window.confirm(confirmMsg);
+            
+            if (!proceed) return false;
         }
 
         // 3. Send Actual Transaction
-        // We use a safe gas limit to prevent estimateGas from blocking UI if simulation was edge-case
-        const tx = await contract.mint({ gasLimit: 300000 });
+        // We set a high manual gasLimit (500,000) to bypass wallet estimation errors if the user chose to force it.
+        const tx = await contract.mint({ gasLimit: 500000 });
         
         console.log(`[${targetChainId}] Identity Mint Tx Sent:`, tx.hash);
         await tx.wait();
@@ -175,13 +169,13 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
         
         if (e.code === 4001 || e?.info?.error?.code === 4001) return false; // User rejected
         
-        // Final fallback error message
+        // Fallback error message if actual TX fails
         if (
             e.message?.includes("execution reverted") || 
             e.info?.error?.message?.includes("execution reverted") ||
             e.code === "CALL_EXCEPTION"
         ) {
-            alert("❌ Transaction Failed\n\nThe contract blocked the minting. This is likely a logic restriction in the Demo Contract, not a lack of Gas.");
+            alert("❌ Mint Failed\n\nThe contract blocked the transaction. This confirms it is a contract logic issue, not a gas issue.");
             return false;
         }
 

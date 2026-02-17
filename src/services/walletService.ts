@@ -1,5 +1,5 @@
 
-import { BrowserProvider, Contract, parseEther, formatEther } from 'ethers';
+import { BrowserProvider, Contract } from 'ethers';
 import { BASE_CHAIN_ID, TARGET_CONTRACT_ADDRESS, CONTRACT_ABI } from '../constants';
 import { sdk } from '@farcaster/miniapp-sdk';
 
@@ -11,27 +11,31 @@ declare global {
 
 // 1. Silent Check (Auto-connect logic)
 export const checkWalletConnection = async (): Promise<string | null> => {
-  // Priority: Farcaster SDK Provider
-  if (sdk.wallet.ethProvider) {
-      try {
-          const provider = new BrowserProvider(sdk.wallet.ethProvider);
-          const accounts = await provider.listAccounts();
-          if (accounts.length > 0) return accounts[0].address;
-      } catch (e) { console.warn("SDK Provider check failed", e); }
-  }
-
-  // Fallback: Window Ethereum
-  if (!window.ethereum) return null;
-
   try {
-    const provider = new BrowserProvider(window.ethereum);
-    const accounts = await provider.send("eth_accounts", []);
-    
-    if (accounts.length > 0) {
-      await switchNetwork(provider);
-      return accounts[0];
-    }
-    return null;
+      // Priority: Farcaster SDK Provider
+      // We check if it exists and looks like a provider (has request method)
+      if (sdk.wallet.ethProvider && typeof sdk.wallet.ethProvider.request === 'function') {
+          try {
+              const provider = new BrowserProvider(sdk.wallet.ethProvider as any);
+              const accounts = await provider.listAccounts();
+              if (accounts.length > 0) return accounts[0].address;
+          } catch (e) { 
+              console.warn("SDK Provider silent check failed:", e); 
+          }
+      }
+
+      // Fallback: Window Ethereum
+      if (window.ethereum) {
+        const provider = new BrowserProvider(window.ethereum);
+        // listAccounts in v6 returns JsonRpcSigner[], so we get the address property
+        const accounts = await provider.listAccounts();
+        
+        if (accounts.length > 0) {
+          await switchNetwork(provider);
+          return accounts[0].address;
+        }
+      }
+      return null;
   } catch (error) {
     console.error("Silent connection check failed:", error);
     return null;
@@ -40,52 +44,73 @@ export const checkWalletConnection = async (): Promise<string | null> => {
 
 // 2. Manual Connect
 export const connectWallet = async (): Promise<string | null> => {
-  let provider;
-
-  if (sdk.wallet.ethProvider) {
-      provider = new BrowserProvider(sdk.wallet.ethProvider);
-  } else if (window.ethereum) {
-      provider = new BrowserProvider(window.ethereum);
-  } else {
-      alert("Wallet not found.");
-      return null;
-  }
+  let provider: BrowserProvider;
 
   try {
-    const accounts = await provider.send("eth_requestAccounts", []);
-    await switchNetwork(provider);
-    return accounts[0];
-  } catch (error) {
+      if (sdk.wallet.ethProvider && typeof sdk.wallet.ethProvider.request === 'function') {
+           provider = new BrowserProvider(sdk.wallet.ethProvider as any);
+      } else if (window.ethereum) {
+           provider = new BrowserProvider(window.ethereum);
+      } else {
+           alert("Wallet not found. If you are on mobile, please use a crypto wallet browser or the Farcaster app.");
+           return null;
+      }
+
+      // Ethers v6: getSigner() internally calls eth_requestAccounts and handles the handshake
+      const signer = await provider.getSigner();
+      const address = await signer.getAddress();
+
+      await switchNetwork(provider);
+      return address;
+  } catch (error: any) {
     console.error("Connection error:", error);
+    // User rejected request
+    if (error.code === 4001 || error?.info?.error?.code === 4001) {
+        return null;
+    }
+    // Handle the specific "could not coalesce error" by showing a friendlier message
+    if (error.message && error.message.includes("coalesce error")) {
+         alert("Wallet connection failed. Please try unlocking your wallet manually and try again.");
+    }
     return null;
   }
 };
 
 // Helper to switch network
 const switchNetwork = async (provider: BrowserProvider) => {
-    const network = await provider.getNetwork();
-    if (Number(network.chainId) !== BASE_CHAIN_ID) {
-      try {
-        const reqProvider = provider.provider as any; 
-        await reqProvider.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: '0x2105' }], // 8453 in hex
-        });
-      } catch (switchError: any) {
-        if (switchError.code === 4902) {
-             alert("Please switch your wallet to Base Network.");
+    try {
+        const network = await provider.getNetwork();
+        if (Number(network.chainId) !== BASE_CHAIN_ID) {
+            try {
+                // We use the low-level send command to ensure compatibility
+                await provider.send('wallet_switchEthereumChain', [{ chainId: '0x2105' }]); // 8453
+            } catch (switchError: any) {
+                // This error code indicates that the chain has not been added to MetaMask.
+                if (switchError.code === 4902 || switchError?.error?.code === 4902) {
+                    alert("Please switch your wallet to Base Network manually.");
+                }
+                // Don't throw here, just warn, as some wallets might not support programmatic switching but still work
+                console.warn("Network switch request failed:", switchError);
+            }
         }
-        throw switchError;
-      }
+    } catch (e) {
+        console.warn("Network check failed:", e);
     }
 }
 
 // --- GM PORTAL CONTRACT INTERACTION ---
 
-// Updated: sayGM now calls 'attest' to create the schema verification on-chain
 export const sayGM = async (): Promise<boolean> => {
     try {
-        const provider = sdk.wallet.ethProvider ? new BrowserProvider(sdk.wallet.ethProvider) : new BrowserProvider(window.ethereum);
+        let provider: BrowserProvider;
+        if (sdk.wallet.ethProvider && typeof sdk.wallet.ethProvider.request === 'function') {
+            provider = new BrowserProvider(sdk.wallet.ethProvider as any);
+        } else if (window.ethereum) {
+            provider = new BrowserProvider(window.ethereum);
+        } else {
+            return false;
+        }
+
         const signer = await provider.getSigner();
         const contract = new Contract(TARGET_CONTRACT_ADDRESS, CONTRACT_ABI, signer);
         
@@ -96,24 +121,22 @@ export const sayGM = async (): Promise<boolean> => {
         return true;
     } catch (e: any) {
         console.error("Verification Failed:", e);
-        
-        // Handle User Rejection
-        if (e.code === 4001 || e?.info?.error?.code === 4001) {
-            return false;
-        }
-
-        // Fallback for dev mode simulation
-        if (process.env.NODE_ENV === 'development') {
-            console.warn("Dev mode: Simulating Attestation success");
-            return new Promise(resolve => setTimeout(() => resolve(true), 2000));
-        }
+        if (e.code === 4001 || e?.info?.error?.code === 4001) return false;
         return false;
     }
 }
 
 export const getStreak = async (address: string): Promise<number> => {
     try {
-        const provider = sdk.wallet.ethProvider ? new BrowserProvider(sdk.wallet.ethProvider) : new BrowserProvider(window.ethereum);
+        let provider: BrowserProvider;
+        if (sdk.wallet.ethProvider && typeof sdk.wallet.ethProvider.request === 'function') {
+             provider = new BrowserProvider(sdk.wallet.ethProvider as any);
+        } else if (window.ethereum) {
+             provider = new BrowserProvider(window.ethereum);
+        } else {
+             return 0;
+        }
+        
         const contract = new Contract(TARGET_CONTRACT_ADDRESS, CONTRACT_ABI, provider);
         const streak = await contract.getStreak(address);
         return Number(streak);

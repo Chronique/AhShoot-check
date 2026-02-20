@@ -363,19 +363,19 @@ const Page: React.FC = () => {
               <div className="space-y-4">
                   {/* Verax Verify Section */}
                   {!isLoadingData && (
-                      <div className={`p-4 rounded-xl border mb-2 animate-in fade-in slide-in-from-top-2 ${attestations.some(a => a.provider === 'Verax') ? 'bg-gradient-to-r from-zinc-900 to-slate-900 border-zinc-500/30 shadow-lg shadow-zinc-900/20' : 'bg-slate-900/50 border-slate-800'}`}>
+                      <div className={`p-4 rounded-xl border mb-2 animate-in fade-in slide-in-from-top-2 ${attestations.some(a => a.provider === 'Verax' || a.network === 'Linea') ? 'bg-gradient-to-r from-zinc-900 to-slate-900 border-zinc-500/30 shadow-lg shadow-zinc-900/20' : 'bg-slate-900/50 border-slate-800'}`}>
                           <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
                                   <img src="https://raw.githubusercontent.com/Consensys/linea-attestation-registry/dev/doc/verax-logo-circle.png?raw=true" className="w-5 h-5" />
                                   <span className="text-xs font-bold text-zinc-200 uppercase tracking-wider">Verax Ecosystem</span>
                               </div>
-                              {attestations.some(a => a.provider === 'Verax') ? (
+                              {attestations.some(a => a.provider === 'Verax' || a.network === 'Linea') ? (
                                   <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">VERIFIED</span>
                               ) : (
                                   <span className="text-[10px] bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full border border-slate-700 font-bold uppercase">Not Found</span>
                               )}
                           </div>
-                          {attestations.some(a => a.provider === 'Verax') ? (
+                          {attestations.some(a => a.provider === 'Verax' || a.network === 'Linea') ? (
                               <p className="text-sm text-slate-300 leading-snug">This user is part of the Verax ecosystem with active attestations on Linea.</p>
                           ) : (
                               <p className="text-sm text-slate-500 italic leading-snug">No Verax attestations or reputation found for this address on Linea.</p>

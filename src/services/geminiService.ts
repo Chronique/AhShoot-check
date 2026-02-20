@@ -86,3 +86,33 @@ export const analyzeAttestationPortfolio = async (attestations: string[]): Promi
         return null;
       }
 }
+
+export const generateAttestationGuide = async (schemaName: string, provider: string): Promise<string> => {
+    const client = getClient();
+    if (!client) return "API Key missing. Cannot generate guide.";
+
+    try {
+        const prompt = `
+            Create a short, step-by-step guide on how to obtain the "${schemaName}" attestation from "${provider}".
+            
+            Format as markdown.
+            Include:
+            1. Prerequisites (wallet, funds, accounts).
+            2. Where to go (URL or platform).
+            3. Exact steps to verify/mint.
+            4. Cost (if any).
+            
+            Keep it under 200 words. Be direct.
+        `;
+
+        const response = await client.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+        });
+
+        return response.text || "Could not generate guide.";
+    } catch (error) {
+        console.error("Guide Generation Error:", error);
+        return "Failed to generate guide. Please try again later.";
+    }
+};

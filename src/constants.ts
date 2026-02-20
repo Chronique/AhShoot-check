@@ -25,6 +25,9 @@ export const FACTORY_ABI = [
   "function mintIdentity() external",   // Base Factory uses 'mintIdentity'
   "function attestIdentity() external", // Base Factory step 2
   
+  // Events
+  "event IdentityAttested(address indexed recipient, bytes32 uid)",
+  
   // View Functions to get the actual Token Contract Address
   "function nft() external view returns (address)", // Base Factory
   "function sbt() external view returns (address)"  // Linea Factory
@@ -44,15 +47,6 @@ export const CHAINS: Chain[] = [
     graphqlUrl: 'https://base.easscan.org/graphql',
     vmType: 'EVM',
     group: 'Optimism Rollups'
-  },
-  { 
-    id: 59144, 
-    name: 'Linea', 
-    color: 'zinc-100', // White/Black theme
-    logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/linea/info/logo.png',
-    graphqlUrl: 'https://graph-query.linea.build/subgraphs/name/Consensys/linea-attestation-registry', // Verax Subgraph
-    vmType: 'EVM',
-    group: 'ZK Rollups'
   },
   { 
     id: 1, 
@@ -112,7 +106,6 @@ export const CHAINS: Chain[] = [
 
 // Helper to get Chains
 export const BASE_CHAIN = CHAINS.find(c => c.id === BASE_CHAIN_ID)!;
-export const LINEA_CHAIN = CHAINS.find(c => c.id === LINEA_CHAIN_ID)!;
 
 // --- POPULAR SCHEMAS ---
 export const POPULAR_SCHEMAS: SchemaDefinition[] = [
@@ -125,16 +118,6 @@ export const POPULAR_SCHEMAS: SchemaDefinition[] = [
     docsUrl: 'https://base.org',
     category: 'Identity',
     tags: ['Base', 'On-Chain', 'EAS'],
-  },
-  {
-    uid: LINEA_SCHEMA_ID,
-    name: 'Linea Soulbound ID',
-    description: 'A permanent, non-transferable identity token (SBT) minted via Verax on Linea.',
-    provider: 'Linea Portal',
-    logoUrl: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/linea/info/logo.png',
-    docsUrl: 'https://ver.ax',
-    category: 'Identity',
-    tags: ['Linea', 'SBT', 'Verax'],
   },
   {
     uid: '0xf8b05c79f090979bf4a80270aba232dff11a10d9ca55c4f88de95317970f0de9',
@@ -169,6 +152,5 @@ export const POPULAR_SCHEMAS: SchemaDefinition[] = [
 ];
 
 export const CUSTOM_CONTRACTS = { 
-    GMPORTAL_BASE: BASE_CONTRACT_ADDRESS,
-    GMPORTAL_LINEA: LINEA_CONTRACT_ADDRESS
+    GMPORTAL_BASE: BASE_CONTRACT_ADDRESS
 };

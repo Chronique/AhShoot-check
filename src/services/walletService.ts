@@ -1,7 +1,7 @@
 
 import { BrowserProvider, Contract, JsonRpcProvider } from 'ethers';
-import { BASE_CHAIN_ID, LINEA_CHAIN_ID, BASE_CONTRACT_ADDRESS, LINEA_CONTRACT_ADDRESS, FACTORY_ABI, ERC721_ABI } from '../constants';
-import { sdk } from '@farcaster/miniapp-sdk';
+import { BASE_CHAIN_ID, BASE_CONTRACT_ADDRESS, FACTORY_ABI, ERC721_ABI } from '../constants';
+import { sdk } from '@farcaster/frame-sdk';
 
 declare global {
   interface Window {
@@ -67,21 +67,13 @@ export const switchNetwork = async (provider: BrowserProvider, targetChainId: nu
             await provider.send('wallet_switchEthereumChain', [{ chainId: chainIdHex }]);
         } catch (switchError: any) {
             if (switchError.code === 4902 || switchError?.error?.code === 4902) {
-                const chainParams = targetChainId === LINEA_CHAIN_ID 
-                    ? {
-                        chainId: chainIdHex,
-                        chainName: 'Linea Mainnet',
-                        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-                        rpcUrls: ['https://rpc.linea.build'],
-                        blockExplorerUrls: ['https://lineascan.build']
-                    }
-                    : {
-                        chainId: chainIdHex,
-                        chainName: 'Base',
-                        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-                        rpcUrls: ['https://mainnet.base.org'],
-                        blockExplorerUrls: ['https://basescan.org']
-                    };
+                const chainParams = {
+                    chainId: chainIdHex,
+                    chainName: 'Base',
+                    nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                    rpcUrls: ['https://mainnet.base.org'],
+                    blockExplorerUrls: ['https://basescan.org']
+                };
                 await provider.send('wallet_addEthereumChain', [chainParams]);
             } else {
                 throw switchError;
@@ -104,17 +96,13 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
         
         await switchNetwork(provider, targetChainId);
 
-        const contractAddress = targetChainId === LINEA_CHAIN_ID ? LINEA_CONTRACT_ADDRESS : BASE_CONTRACT_ADDRESS;
+        const contractAddress = BASE_CONTRACT_ADDRESS;
         const contract = new Contract(contractAddress, FACTORY_ABI, signer);
         
         // --- PRE-FLIGHT: CHECK BALANCE (Optional, does not block) ---
         try {
             let tokenAddress = '';
-            if (targetChainId === BASE_CHAIN_ID) {
-                try { tokenAddress = await contract.nft(); } catch(e) {}
-            } else {
-                try { tokenAddress = await contract.sbt(); } catch(e) {}
-            }
+            try { tokenAddress = await contract.nft(); } catch(e) {}
 
             if (tokenAddress && tokenAddress !== '0x0000000000000000000000000000000000000000') {
                 const tokenContract = new Contract(tokenAddress, ERC721_ABI, provider);
@@ -133,14 +121,7 @@ export const mintIdentity = async (targetChainId: number): Promise<boolean> => {
         // --- ACTION: SEND TRANSACTION DIRECTLY ---
         
         try {
-            let tx;
-            if (targetChainId === BASE_CHAIN_ID) {
-                // Use correct function name for Base Identity Factory
-                tx = await contract.mintIdentity();
-            } else {
-                // Legacy/Linea call
-                tx = await contract.mint();
-            }
+            const tx = await contract.mintIdentity();
             
             console.log(`[${targetChainId}] Identity Mint Tx Sent:`, tx.hash);
             await tx.wait();
@@ -176,19 +157,15 @@ export interface IdentityStatus {
 
 export const getIdentityStatus = async (address: string, chainId: number): Promise<IdentityStatus> => {
     try {
-        const rpcUrl = chainId === BASE_CHAIN_ID ? 'https://mainnet.base.org' : 'https://rpc.linea.build';
+        const rpcUrl = 'https://mainnet.base.org';
         const provider = new JsonRpcProvider(rpcUrl);
         
-        const factoryAddress = chainId === LINEA_CHAIN_ID ? LINEA_CONTRACT_ADDRESS : BASE_CONTRACT_ADDRESS;
+        const factoryAddress = BASE_CONTRACT_ADDRESS;
         const factoryContract = new Contract(factoryAddress, FACTORY_ABI, provider);
         
         let tokenAddress: string;
         try {
-            if (chainId === BASE_CHAIN_ID) {
-                tokenAddress = await factoryContract.nft();
-            } else {
-                tokenAddress = await factoryContract.sbt();
-            }
+            tokenAddress = await factoryContract.nft();
         } catch (contractErr) {
             return { hasIdentity: false, balance: 0 };
         }
@@ -206,6 +183,43 @@ export const getIdentityStatus = async (address: string, chainId: number): Promi
         };
     } catch (e) {
         return { hasIdentity: false, balance: 0 };
+    }
+}
+
+export const attestIdentity = async (): Promise<string | null> => {
+    const rawProvider = getRawProvider();
+    if (!rawProvider) return null;
+
+    try {
+        const provider = new BrowserProvider(rawProvider as any);
+        const signer = await provider.getSigner();
+        
+        await switchNetwork(provider, BASE_CHAIN_ID);
+
+        const contract = new Contract(BASE_CONTRACT_ADDRESS, FACTORY_ABI, signer);
+        
+        console.log("Calling attestIdentity...");
+        const tx = await contract.attestIdentity();
+        console.log("Attestation Tx Sent:", tx.hash);
+        const receipt = await tx.wait();
+        
+        // Find the IdentityAttested event to get the UID
+        const event = receipt.logs.find((log: any) => {
+            try {
+                const parsed = contract.interface.parseLog(log);
+                return parsed?.name === 'IdentityAttested';
+            } catch (e) { return false; }
+        });
+
+        if (event) {
+            const parsed = contract.interface.parseLog(event);
+            return parsed?.args.uid;
+        }
+
+        return "success"; 
+    } catch (e: any) {
+        console.error("Attestation Error:", e);
+        return null;
     }
 }
 

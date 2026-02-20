@@ -4,15 +4,33 @@ import { Attestation } from '../types';
 
 interface AttestationCardProps {
   attestation: Attestation;
+  onOpenGuide?: (attestation: Attestation) => void;
 }
 
-export const AttestationCard: React.FC<AttestationCardProps> = ({ attestation }) => {
+export const AttestationCard: React.FC<AttestationCardProps> = ({ attestation, onOpenGuide }) => {
   const date = new Date(attestation.time * 1000).toLocaleDateString();
 
   return (
     <div className="group relative bg-slate-800/50 hover:bg-slate-800 border border-slate-700 hover:border-indigo-500/50 rounded-xl p-5 transition-all duration-300 shadow-md hover:shadow-xl">
-      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-        <span className="material-symbols-rounded text-slate-400 hover:text-white cursor-pointer text-base">open_in_new</span>
+      <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        {onOpenGuide && (
+            <button 
+                onClick={(e) => { e.stopPropagation(); onOpenGuide(attestation); }}
+                className="p-1 hover:bg-indigo-500/20 rounded text-indigo-400 hover:text-indigo-300 transition-colors"
+                title="How to get this?"
+            >
+                <span className="material-symbols-rounded text-base">help</span>
+            </button>
+        )}
+        <a 
+            href={`https://base.easscan.org/attestation/view/${attestation.uid}`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="p-1 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-colors"
+            title="View on EAS Scan"
+        >
+            <span className="material-symbols-rounded text-base">open_in_new</span>
+        </a>
       </div>
       
       <div className="flex items-start gap-4">

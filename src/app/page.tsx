@@ -5,13 +5,14 @@ import { TerminalAgent } from '../components/TerminalAgent';
 import { Navbar } from '../components/Navbar';
 import { BottomNav, Tab } from '../components/BottomNav';
 import { GMPortal } from '../components/GMPortal'; // New Import
+import { TutorialModal } from '../components/TutorialModal';
 import { CHAINS, BASE_CHAIN, POPULAR_SCHEMAS } from '../constants';
 import { Attestation, Chain, FarcasterUser } from '../types';
 import { fetchAttestations } from '../services/easService';
 import { connectWallet, interactWithContract, checkWalletConnection } from '../services/walletService';
 import { resolveEnsName } from '../services/ensService';
-import { analyzeAttestationPortfolio, AnalysisResult } from '../services/geminiService';
-import { sdk } from '@farcaster/miniapp-sdk';
+import { analyzeAttestationPortfolio, generateAttestationGuide, AnalysisResult } from '../services/geminiService';
+import { sdk } from '@farcaster/frame-sdk';
 
 const Page: React.FC = () => {
   // Navigation State
@@ -33,6 +34,12 @@ const Page: React.FC = () => {
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Tutorial Modal State
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
+  const [tutorialTitle, setTutorialTitle] = useState('');
+  const [tutorialContent, setTutorialContent] = useState('');
+  const [isGeneratingTutorial, setIsGeneratingTutorial] = useState(false);
 
   // --- LOGIC ---
 
@@ -223,6 +230,21 @@ const Page: React.FC = () => {
     }
   };
 
+  const handleOpenTutorial = async (attestation: Attestation) => {
+    setTutorialTitle(`How to get: ${attestation.schemaName || 'Attestation'}`);
+    setTutorialContent('');
+    setIsTutorialOpen(true);
+    setIsGeneratingTutorial(true);
+
+    const guide = await generateAttestationGuide(
+        attestation.schemaName || 'Unknown Schema', 
+        attestation.provider || 'Unknown Provider'
+    );
+
+    setTutorialContent(guide);
+    setIsGeneratingTutorial(false);
+  };
+
   // --- RENDER CONTENT BASED ON TAB ---
 
   const renderHome = () => (
@@ -263,8 +285,8 @@ const Page: React.FC = () => {
           <h3 className="font-bold text-slate-400 text-sm uppercase tracking-wide mb-3 pl-1">Trending Schemas</h3>
           
           <div className="flex overflow-x-auto gap-3 pb-4 -mx-4 px-4 snap-x touch-pan-x">
-              {POPULAR_SCHEMAS.map(s => (
-                  <div key={s.uid} className="min-w-[160px] w-[160px] flex-shrink-0 snap-start bg-slate-800 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-2 shadow-sm hover:bg-slate-800/80 active:scale-95 transition-all">
+              {POPULAR_SCHEMAS.map((s, i) => (
+                  <div key={`${s.uid}-${i}`} className="min-w-[160px] w-[160px] flex-shrink-0 snap-start bg-slate-800 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-2 shadow-sm hover:bg-slate-800/80 active:scale-95 transition-all">
                       <img src={s.logoUrl} className="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 object-cover" />
                       <div className="flex-1">
                           <p className="font-bold text-white text-sm line-clamp-1">{s.name}</p>
@@ -328,7 +350,11 @@ const Page: React.FC = () => {
                           )}
                           
                           {attestations.map(att => (
-                              <AttestationCard key={att.uid} attestation={att} />
+                              <AttestationCard 
+                                key={att.uid} 
+                                attestation={att} 
+                                onOpenGuide={handleOpenTutorial}
+                              />
                           ))}
                       </div>
                   ) : (
@@ -386,6 +412,13 @@ const Page: React.FC = () => {
 
       <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
       
+      <TutorialModal 
+        isOpen={isTutorialOpen}
+        onClose={() => setIsTutorialOpen(false)}
+        title={tutorialTitle}
+        content={tutorialContent}
+        isLoading={isGeneratingTutorial}
+      />
     </div>
   );
 };

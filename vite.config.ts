@@ -22,22 +22,7 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         // Externalize modules that are provided via importmap in index.html
-        external: [
-          'react',
-          'react-dom',
-          'react-dom/client',
-          '@google/genai',
-          'ethers',
-          'viem',
-          'wagmi',
-          '@coinbase/onchainkit',
-          'clsx',
-          'tailwind-merge',
-          'react-markdown',
-          'lucide-react',
-          '@farcaster/quick-auth',
-          '@farcaster/miniapp-sdk'
-        ]
+        external: []
       }
     },
     // Shim process.env untuk kompatibilitas dengan code Next.js/library lama

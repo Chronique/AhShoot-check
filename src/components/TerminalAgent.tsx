@@ -33,8 +33,14 @@ export const TerminalAgent: React.FC = () => {
         return `**AVAILABLE COMMANDS:**
 - \`list\`: Show all available verification schemas.
 - \`verify <name>\`: Get docs for a provider (e.g. \`verify base\`).
+- \`verax\`: Quick link to Verax Explorer.
 - \`status\`: Check system connectivity.
 - \`clear\`: Clear terminal history.`;
+
+      case 'verax':
+        return `**VERAX EXPLORER**
+Access the decentralized attestation registry on Linea.
+[EXPLORE VERAX](https://explorer.ver.ax/)`;
 
       case 'list':
         const schemaList = POPULAR_SCHEMAS.map(s => `- **${s.provider}**: ${s.name}`).join('\n');

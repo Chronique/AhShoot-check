@@ -41,21 +41,20 @@ export const GMPortal: React.FC<GMPortalProps> = ({ connectedAddress, farcasterU
   const loadData = async () => {
       setIsLoading(true);
       
-      // 1. Fetch Recents
-      try {
-          const recents = await fetchRecentAttestations(activeSchemaId, activeChain);
-          setRecentActivity(recents);
-      } catch (e) { console.error(e); }
-
-      // 2. Check User Status
+      // 1. Fetch User Status & Activity
       if (connectedAddress) {
           try {
-              // Check Last Attestation
+              // Fetch All User Attestations
               const attestations = await fetchAttestations(connectedAddress, activeChain);
 
-              const found = attestations.find(att => 
+              // Filter for the specific schema to show as "Recent Mints" (Personalized)
+              const userMints = attestations.filter(att => 
                   att.schemaUid.toLowerCase() === activeSchemaId.toLowerCase()
               );
+              setRecentActivity(userMints);
+
+              // Set the primary user attestation display
+              const found = userMints[0]; // Take the latest one
 
               if (found) {
                   setUserAttestation({
@@ -70,8 +69,11 @@ export const GMPortal: React.FC<GMPortalProps> = ({ connectedAddress, farcasterU
               }
           } catch (e) {
               console.error("Status check failed", e);
+              setRecentActivity([]);
+              setUserAttestation(null);
           }
       } else {
+          setRecentActivity([]);
           setUserAttestation(null);
       }
       setIsLoading(false);
@@ -217,7 +219,7 @@ export const GMPortal: React.FC<GMPortalProps> = ({ connectedAddress, farcasterU
        <div className="mt-8 pt-6 border-t border-slate-800">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-slate-400 text-sm uppercase tracking-wide pl-1">
-                    Recent Mints
+                    Your Recent Mints
                 </h3>
                 <button onClick={loadData} className="text-xs text-indigo-400 hover:text-white flex items-center gap-1">
                     <span className="material-symbols-rounded text-sm">refresh</span> Refresh

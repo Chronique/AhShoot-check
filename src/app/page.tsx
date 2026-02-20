@@ -12,6 +12,7 @@ import { fetchAttestations } from '../services/easService';
 import { connectWallet, interactWithContract, checkWalletConnection } from '../services/walletService';
 import { resolveEnsName } from '../services/ensService';
 import { analyzeAttestationPortfolio, generateAttestationGuide, AnalysisResult } from '../services/geminiService';
+import { fetchVeraxAttestations } from '../services/veraxService';
 import { sdk } from '@farcaster/frame-sdk';
 
 const Page: React.FC = () => {
@@ -116,7 +117,12 @@ const Page: React.FC = () => {
         }
         if (chainsToQuery.length === 0) chainsToQuery = [BASE_CHAIN]; 
 
-        const promises = chainsToQuery.map(chain => fetchAttestations(address, chain));
+        const promises = chainsToQuery.map(chain => {
+            if (chain.name.toLowerCase().includes('linea')) {
+                return fetchVeraxAttestations(address, chain);
+            }
+            return fetchAttestations(address, chain);
+        });
         const results = await Promise.all(promises);
         const allAttestations = results.flat();
 
@@ -282,19 +288,52 @@ const Page: React.FC = () => {
               </div>
           </div>
 
-          <h3 className="font-bold text-slate-400 text-sm uppercase tracking-wide mb-3 pl-1">Trending Schemas</h3>
-          
-          <div className="flex overflow-x-auto gap-3 pb-4 -mx-4 px-4 snap-x touch-pan-x">
-              {POPULAR_SCHEMAS.map((s, i) => (
-                  <div key={`${s.uid}-${i}`} className="min-w-[160px] w-[160px] flex-shrink-0 snap-start bg-slate-800 p-4 rounded-xl border border-slate-700/50 flex flex-col gap-2 shadow-sm hover:bg-slate-800/80 active:scale-95 transition-all">
-                      <img src={s.logoUrl} className="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 object-cover" />
-                      <div className="flex-1">
-                          <p className="font-bold text-white text-sm line-clamp-1">{s.name}</p>
-                          <p className="text-xs text-slate-400">{s.provider}</p>
-                      </div>
-                      <span className="text-[10px] bg-slate-900 text-slate-500 px-2 py-1 rounded w-fit border border-slate-700/30">{s.category}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Base Ecosystem Column */}
+              <div className="flex flex-col gap-4">
+                  <h3 className="font-bold text-slate-400 text-sm uppercase tracking-wide pl-1 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                      Base Ecosystem
+                  </h3>
+                  <div className="space-y-3">
+                      {POPULAR_SCHEMAS.filter(s => s.ecosystem === 'Base').map((s, i) => (
+                          <div 
+                            key={`${s.uid}-${i}`} 
+                            className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 flex items-center gap-4 shadow-sm hover:bg-slate-800 transition-all group"
+                          >
+                              <img src={s.logoUrl} className="w-10 h-10 rounded-full bg-slate-900 border border-slate-700 object-cover group-hover:border-indigo-500/50 transition-colors" />
+                              <div className="flex-1 min-w-0">
+                                  <p className="font-bold text-white text-sm truncate">{s.name}</p>
+                                  <p className="text-xs text-slate-400 truncate">{s.provider}</p>
+                              </div>
+                              <span className="material-symbols-rounded text-slate-600 group-hover:text-indigo-400 transition-colors">info</span>
+                          </div>
+                      ))}
                   </div>
-              ))}
+              </div>
+
+              {/* Verax Ecosystem Column */}
+              <div className="flex flex-col gap-4">
+                  <h3 className="font-bold text-slate-400 text-sm uppercase tracking-wide pl-1 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-zinc-100"></span>
+                      Verax Ecosystem
+                  </h3>
+                  <div className="space-y-3">
+                      {POPULAR_SCHEMAS.filter(s => s.ecosystem === 'Verax').map((s, i) => (
+                          <div 
+                            key={`${s.uid}-${i}`} 
+                            className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 flex items-center gap-4 shadow-sm hover:bg-slate-800 transition-all group"
+                          >
+                              <img src={s.logoUrl} className="w-10 h-10 rounded-full bg-slate-900 border border-slate-700 object-cover group-hover:border-indigo-500/50 transition-colors" />
+                              <div className="flex-1 min-w-0">
+                                  <p className="font-bold text-white text-sm truncate">{s.name}</p>
+                                  <p className="text-xs text-slate-400 truncate">{s.provider}</p>
+                              </div>
+                              <span className="material-symbols-rounded text-slate-600 group-hover:text-indigo-400 transition-colors">info</span>
+                          </div>
+                      ))}
+                  </div>
+              </div>
           </div>
       </div>
   );
@@ -322,6 +361,28 @@ const Page: React.FC = () => {
           {/* Results Area */}
           {targetAddress && (
               <div className="space-y-4">
+                  {/* Verax Verify Section */}
+                  {!isLoadingData && (
+                      <div className={`p-4 rounded-xl border mb-2 animate-in fade-in slide-in-from-top-2 ${attestations.some(a => a.provider === 'Verax') ? 'bg-gradient-to-r from-zinc-900 to-slate-900 border-zinc-500/30 shadow-lg shadow-zinc-900/20' : 'bg-slate-900/50 border-slate-800'}`}>
+                          <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                  <img src="https://raw.githubusercontent.com/Consensys/linea-attestation-registry/dev/doc/verax-logo-circle.png?raw=true" className="w-5 h-5" />
+                                  <span className="text-xs font-bold text-zinc-200 uppercase tracking-wider">Verax Ecosystem</span>
+                              </div>
+                              {attestations.some(a => a.provider === 'Verax') ? (
+                                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 font-bold">VERIFIED</span>
+                              ) : (
+                                  <span className="text-[10px] bg-slate-800 text-slate-500 px-2 py-0.5 rounded-full border border-slate-700 font-bold uppercase">Not Found</span>
+                              )}
+                          </div>
+                          {attestations.some(a => a.provider === 'Verax') ? (
+                              <p className="text-sm text-slate-300 leading-snug">This user is part of the Verax ecosystem with active attestations on Linea.</p>
+                          ) : (
+                              <p className="text-sm text-slate-500 italic leading-snug">No Verax attestations or reputation found for this address on Linea.</p>
+                          )}
+                      </div>
+                  )}
+
                   <div className="flex items-center justify-between text-xs text-slate-400 px-1">
                       <span>Result for: <span className="text-indigo-400 font-mono bg-indigo-900/30 px-1 rounded">{targetAddress.slice(0,6)}...{targetAddress.slice(-4)}</span></span>
                       <button onClick={() => setTargetAddress('')} className="text-slate-500 hover:text-white">Clear</button>

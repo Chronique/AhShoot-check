@@ -22,6 +22,7 @@ export interface SchemaDefinition {
   docsUrl: string;
   category: SchemaCategory;
   tags: string[];
+  ecosystem?: 'Base' | 'Verax';
 }
 
 export interface Attestation {

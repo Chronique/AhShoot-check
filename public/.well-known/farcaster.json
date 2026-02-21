@@ -7,15 +7,15 @@
   "frame": {
     "version": "1",
     "name": "AH SHOOT",
-    "iconUrl": "https://raw.githubusercontent.com/base/demos/master/mini-apps/templates/minikit/mini-app-full-demo-minikit/public/icon.png",
+    "iconUrl": "https://ah-shoot-check.vercel.app/icon.png",
     "homeUrl": "https://ah-shoot-check.vercel.app",
-    "imageUrl": "https://raw.githubusercontent.com/base/demos/master/mini-apps/templates/minikit/mini-app-full-demo-minikit/public/icon.png",
+    "imageUrl": "https://ah-shoot-check.vercel.app/icon.png",
     "buttonTitle": "Check Reputation",
-    "splashImageUrl": "https://raw.githubusercontent.com/base/demos/master/mini-apps/templates/minikit/mini-app-full-demo-minikit/public/icon.png",
+    "splashImageUrl": "https://ah-shoot-check.vercel.app/icon.png",
     "splashBackgroundColor": "#0f172a",
     "webhookUrl": "https://ah-shoot-check.vercel.app/api/webhook",
     "ogDescription": "Verify EAS attestations instantly.",
-    "ogImageUrl": "https://raw.githubusercontent.com/base/demos/master/mini-apps/templates/minikit/mini-app-full-demo-minikit/public/icon.png",
+    "ogImageUrl": "https://ah-shoot-check.vercel.app/icon.png",
     "primaryCategory": "developer-tools",
     "requiredCapabilities": [
       "actions.ready",
@@ -41,7 +41,9 @@
       "tools"
     ]
   },
-  "allowedAddresses": [
-    "0x4fba95e4772be6d37a0c931D00570Fe2c9675524"
-  ]
+
+  "baseBuilder": {
+      "builder": "bc_wqi7gszy", 
+      "allowedAddresses": ["0x4fba95e4772be6d37a0c931D00570Fe2c9675524"]
+  }
 }

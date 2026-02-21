@@ -1,65 +1,82 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="theme-color" content="#0f172a" />
-    
-    <!-- Base App Verification -->
-    <meta name="base:app_id" content="6966c5b3cf19b2d92b9f7348" />
-    
-    
 
-    <!-- Embeds & Previews (Open Graph) -->
+    <!-- Mobile / Mini App Safe Viewport -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#0f172a" />
+
+    <!-- Base App Verification (WAJIB) -->
+    <meta name="base:app_id" content="6966c5b3cf19b2d92b9f7348" />
+
+    <!-- SEO / Embed Preview (AMAN) -->
     <title>AH SHOOT</title>
     <meta property="og:title" content="AH SHOOT" />
-    <meta property="og:description" content="Verify EAS attestations instantly." />
+    <meta
+      property="og:description"
+      content="Verify EAS attestations instantly."
+    />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://ah-shoot-check.vercel.app/icon.png" />
-    
-    <!-- Farcaster Frame Tags (Fallback/Embed) -->
-    <meta property="fc:frame" content="vNext" />
-    <meta property="fc:frame:image" content="https://ah-shoot-check.vercel.app/icon.png" />
-    <meta property="fc:frame:button:1" content="Check Reputation" />
-    <meta property="fc:frame:button:1:action" content="link" />
-    <meta property="fc:frame:button:1:target" content="https://ah-shoot-check.vercel.app" />
+    <meta
+      property="og:image"
+      content="https://ah-shoot-check.vercel.app/icon.png"
+    />
 
-    <!-- M3 Material Design Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%234f46e5' d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z'/%3E%3Cpath fill='%23ffffff' d='M10 17l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/%3E%3C/svg%3E" />
-    <!-- PWA / Mini App Manifest -->
+    <!-- Favicon -->
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%234f46e5' d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z'/%3E%3Cpath fill='%23ffffff' d='M10 17l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/%3E%3C/svg%3E"
+    />
+
+    <!-- PWA Manifest (optional tapi aman) -->
     <link rel="manifest" href="/manifest.json" />
-    
+
+    <!-- Styles -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- M3 Material Symbols Rounded -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+    />
+
     <style>
       :root {
         --safe-bottom: env(safe-area-inset-bottom);
         --safe-top: env(safe-area-inset-top);
       }
+
       body {
-        font-family: 'Inter', sans-serif;
+        font-family: "Inter", sans-serif;
         background-color: #0f172a;
         color: #f8fafc;
-        /* Prevent bounce on iOS */
-        overscroll-behavior-y: none; 
+        overscroll-behavior-y: none;
       }
-      /* Hide scrollbar for cleaner mobile look */
+
       .scrollbar-hide::-webkit-scrollbar {
-          display: none;
+        display: none;
       }
+
       .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
       }
+
       .material-symbols-rounded {
-        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24;
       }
     </style>
-<link rel="stylesheet" href="/index.css">
-</head>
+
+    <link rel="stylesheet" href="/index.css" />
+  </head>
+
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
